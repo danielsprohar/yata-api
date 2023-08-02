@@ -11,8 +11,6 @@ import { AccessTokenGuard } from './access-token.guard';
 
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
-  private static readonly defaultAuthType = AuthType.BEARER;
-
   private readonly authTypeGuardMap: Record<
     AuthType,
     CanActivate | CanActivate[]
@@ -30,9 +28,12 @@ export class AuthenticationGuard implements CanActivate {
     const authTypes = this.reflector.getAllAndOverride<AuthType[]>(
       AUTH_TYPE_KEY,
       [context.getHandler(), context.getClass()],
-    ) ?? [AuthenticationGuard.defaultAuthType];
+    ) ?? [AuthType.BEARER];
 
-    const guards = authTypes.map((type) => this.authTypeGuardMap[type]).flat();
+    const guards = authTypes
+      .map((authType: AuthType) => this.authTypeGuardMap[authType])
+      .flat();
+
     let error = new UnauthorizedException();
 
     for (const instance of guards) {

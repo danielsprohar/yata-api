@@ -17,7 +17,7 @@ export class AccessTokenGuard implements CanActivate {
   constructor(
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
-    private jwtService: JwtService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -34,7 +34,6 @@ export class AccessTokenGuard implements CanActivate {
       );
       request[REQUEST_USER_KEY] = payload;
     } catch (error) {
-      console.error(error);
       if (error instanceof TokenExpiredError) {
         throw new UnauthorizedException(error.message);
       }
