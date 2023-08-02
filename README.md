@@ -19,7 +19,7 @@ PORT=3000
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSPWORD=<password>
+REDIS_PASSWORD=<password>
 REDIS_USER=default
 
 # These are required if you plan to use Auth0
@@ -39,7 +39,7 @@ If Docker is your preference, then ensure that Docker is running on your machine
 Open a terminal at the root of the project and run the following to create the Postgres database:
 
 ```
-docker compose up redis dev-db --detach
+docker compose up redis db --detach
 ```
 
 ### Without Docker
@@ -64,4 +64,4 @@ Once the installation process is complete you can start the server:
 npm run start
 ```
 
-Navigate to http://localhost:3000/api to see the Swagger document.
+Navigate to http://localhost:3000/swagger to see the Swagger document.
