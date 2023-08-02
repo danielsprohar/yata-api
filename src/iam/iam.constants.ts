@@ -1,4 +1,4 @@
-import { CookieOptions, Response } from 'express';
+import { CookieOptions } from 'express';
 
 export const REQUEST_USER_KEY = 'user';
 
