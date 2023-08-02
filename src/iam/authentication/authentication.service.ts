@@ -26,11 +26,13 @@ export class AuthenticationService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
   ) {}
 
-  async logout(userId: string) {
+  async logout(userId: string): Promise<void> {
     await this.refreshTokenIdsStorage.invalidate(userId);
   }
 
-  async refreshTokens(refreshToken: string) {
+  async refreshTokens(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string; user: User }> {
     try {
       const tokenPayload =
         await this.jwtService.verifyAsync<RefreshTokenPayload>(refreshToken, {
@@ -53,13 +55,17 @@ export class AuthenticationService {
         },
       });
 
-      await this.refreshTokenIdsStorage.validate(
+      const isValid = await this.refreshTokenIdsStorage.validate(
         user.id,
         tokenPayload.refreshTokenId,
       );
 
-      // refresh token rotation -> ensure that this token cannot be used again.
-      await this.refreshTokenIdsStorage.invalidate(user.id);
+      if (isValid) {
+        // refresh token rotation -> ensure that this token cannot be used again.
+        await this.refreshTokenIdsStorage.invalidate(user.id);
+      } else {
+        throw new InvalidatedRefreshTokenError('Refresh token is invalid');
+      }
 
       const tokens = await this.generateTokens(user);
       return {
@@ -75,7 +81,9 @@ export class AuthenticationService {
     }
   }
 
-  async signUp(signUpDto: SignUpDto) {
+  async signUp(
+    signUpDto: SignUpDto,
+  ): Promise<{ accessToken: string; refreshToken: string; user: User }> {
     try {
       const user = await this.usersService.create({
         data: {
@@ -111,7 +119,9 @@ export class AuthenticationService {
     }
   }
 
-  async signIn(signInDto: SignInDto) {
+  async signIn(
+    signInDto: SignInDto,
+  ): Promise<{ accessToken: string; refreshToken: string; user: User }> {
     const user = await this.usersService.findOne({
       where: {
         email: signInDto.email,
@@ -132,8 +142,8 @@ export class AuthenticationService {
     }
 
     delete user.password;
-    // create tokens in parallel
     const { accessToken, refreshToken } = await this.generateTokens(user);
+
     return {
       accessToken,
       refreshToken,
@@ -141,8 +151,12 @@ export class AuthenticationService {
     };
   }
 
-  async generateTokens(user: User) {
+  async generateTokens(
+    user: User,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const refreshTokenId = randomUUID();
+
+    // create tokens in parallel
     const [accessToken, refreshToken] = await Promise.all([
       this.signToken<Partial<ActiveUserData>>(
         user.id,
@@ -157,10 +171,15 @@ export class AuthenticationService {
     ]);
 
     await this.refreshTokenIdsStorage.insert(user.id, refreshTokenId);
+
     return { accessToken, refreshToken };
   }
 
-  private async signToken<T>(userId: string, expiresIn: number, payload?: T) {
+  private async signToken<T>(
+    userId: string,
+    expiresIn: number,
+    payload?: T,
+  ): Promise<string> {
     return await this.jwtService.signAsync(
       {
         sub: userId,

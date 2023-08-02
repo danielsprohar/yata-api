@@ -23,7 +23,7 @@ import { Cookies } from '../../decorators/cookies.decorator';
 @Public()
 @Controller('auth')
 export class AuthenticationController {
-  constructor(private authService: AuthenticationService) {}
+  constructor(private readonly authService: AuthenticationService) {}
 
   @Post('logout')
   @Auth(AuthType.BEARER)
@@ -47,10 +47,9 @@ export class AuthenticationController {
       throw new UnauthorizedException('No token');
     }
 
-    res.clearCookie(COOKIE_REFRESH_TOKEN_KEY, authCookieOptions);
-
     const authServiceRes = await this.authService.refreshTokens(refreshToken);
 
+    res.clearCookie(COOKIE_REFRESH_TOKEN_KEY, authCookieOptions);
     res.cookie(
       COOKIE_REFRESH_TOKEN_KEY,
       authServiceRes.refreshToken,
