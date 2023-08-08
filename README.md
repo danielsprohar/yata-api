@@ -7,7 +7,7 @@ Yet another to-do app created with JavaScript, specifically [NestJS](https://nes
 Create a `.env` file at the root of the project. The file should contain:
 
 ```Properties
-DATABASE_URL="postgresql://postgres:<your_password>@localhost:5434/yata?schema=public"
+DATABASE_URL="postgresql://postgres:<your_password>@localhost:5432/yata?schema=public"
 
 JWT_SECRET=<secret>
 JWT_TOKEN_AUDIENCE=localhost:4200
