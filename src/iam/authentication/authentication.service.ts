@@ -18,10 +18,10 @@ import { RefreshTokenIdsStorage } from './refresh-token-ids.storage';
 @Injectable()
 export class AuthenticationService {
   constructor(
-    private usersService: UsersService,
-    private hashingService: HashingService,
-    private jwtService: JwtService,
-    private refreshTokenIdsStorage: RefreshTokenIdsStorage,
+    private readonly usersService: UsersService,
+    private readonly hashingService: HashingService,
+    private readonly jwtService: JwtService,
+    private readonly refreshTokenIdsStorage: RefreshTokenIdsStorage,
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
   ) {}
