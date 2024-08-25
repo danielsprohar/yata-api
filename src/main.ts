@@ -8,26 +8,7 @@ import { AppModule } from './app.module';
 import { PrismaService } from './prisma/prisma.service';
 
 function checkEnvironment(configService: ConfigService) {
-  const requiredEnvVars = [
-    'DATABASE_URL',
-    'JWT_SECRET',
-    'JWT_TOKEN_AUDIENCE',
-    'JWT_TOKEN_ISSUER',
-    'JWT_ACCESS_TOKEN_TTL',
-    'JWT_REFRESH_TOKEN_TTL',
-    'REDIS_HOST',
-    'REDIS_PORT',
-    'REDIS_PASSWORD',
-    'REDIS_USER',
-    'PORT',
-    'CLIENT_ORIGIN_URL',
-    // Auth0
-    // 'ISSUER_BASE_URL',
-    // 'AUDIENCE',
-    // Google oauth
-    'GOOGLE_CLIENT_ID',
-    'GOOGLE_CLIENT_SECRET',
-  ];
+  const requiredEnvVars = ['DATABASE_URL', 'PORT'];
 
   requiredEnvVars.forEach((envVar) => {
     if (!configService.get<string>(envVar)) {
@@ -46,11 +27,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableCors({
     credentials: true,
-    origin: [
-      configService.get<string>('CLIENT_ORIGIN_URL'),
-      'http://localhost',
-      'http://localhost:4200',
-    ],
+    origin: ['http://localhost:4200'],
     methods: ['DELETE', 'GET', 'POST', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type'],
     maxAge: 86400,

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Task } from '@prisma/client';
 import { QueryParams } from '../dto/query-params.dto';
-import { PaginatedList } from '../interfaces/paginated-list.interface';
+import { PageResponse } from '../core/models/page-response.model';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -63,7 +63,7 @@ export class TasksService {
     where?: Prisma.TaskWhereInput;
     orderBy?: Prisma.TaskOrderByWithRelationInput;
     include?: Prisma.TaskInclude;
-  }): Promise<PaginatedList<Task>> {
+  }): Promise<PageResponse<Task>> {
     const count = await this.prisma.task.count({
       where: params.where,
     });
@@ -90,7 +90,7 @@ export class TasksService {
     });
 
     return {
-      pageIndex: params.skip,
+      page: params.skip,
       pageSize: params.take,
       count,
       data: tasks,

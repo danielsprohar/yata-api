@@ -1,0 +1,38 @@
+version: '3.9'
+services:
+  db:
+    image: mysql:9
+    restart: unless-stopped
+    container_name: trailwinds-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=yata
+      - MYSQL_USER=yata
+      - MYSQL_PASSWORD=password
+      - MYSQL_PORT=3306
+    ports:
+      - '3305:3306'
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - yata
+
+  redis:
+    image: redis
+    container_name: yata_redis
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-data:/data
+    networks:
+      - yata
+
+networks:
+  yata:
+
+
+volumes:
+  yata-data:
+  redis-data:
+    driver: local

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Tag, Task } from '@prisma/client';
 import { QueryParams } from '../dto/query-params.dto';
-import { PaginatedList } from '../interfaces/paginated-list.interface';
+import { PageResponse } from '../core/models/page-response.model';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class TagsService {
     return await this.prisma.tag.create(args);
   }
 
-  async findAll(params: Prisma.TagFindManyArgs): Promise<PaginatedList<Tag>> {
+  async findAll(params: Prisma.TagFindManyArgs): Promise<PageResponse<Tag>> {
     const { skip, take, orderBy } = params;
     const count = await this.prisma.tag.count();
     const data = await this.prisma.tag.findMany({
@@ -22,7 +22,7 @@ export class TagsService {
     });
 
     return {
-      pageIndex: skip + 1,
+      page: skip + 1,
       pageSize: take,
       count,
       data,
@@ -33,7 +33,7 @@ export class TagsService {
     return await this.prisma.tag.findFirst(args);
   }
 
-  async getTasks(args: Prisma.TaskFindManyArgs): Promise<PaginatedList<Task>> {
+  async getTasks(args: Prisma.TaskFindManyArgs): Promise<PageResponse<Task>> {
     const count = await this.prisma.task.count({
       where: args.where,
     });
@@ -41,7 +41,7 @@ export class TagsService {
     const tasks = await this.prisma.task.findMany(args);
 
     return {
-      pageIndex: args.skip,
+      page: args.skip,
       pageSize: args.take,
       count,
       data: tasks,

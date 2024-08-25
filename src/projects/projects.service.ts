@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Project } from '@prisma/client';
 import { QueryParams } from '../dto/query-params.dto';
-import { PaginatedList } from '../interfaces/paginated-list.interface';
+import { PageResponse } from '../core/models/page-response.model';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
@@ -19,7 +19,7 @@ export class ProjectsService {
     cursor?: Prisma.ProjectWhereUniqueInput;
     where: Prisma.ProjectWhereInput;
     orderBy?: Prisma.ProjectOrderByWithRelationInput;
-  }): Promise<PaginatedList<Project>> {
+  }): Promise<PageResponse<Project>> {
     if (!params.orderBy) {
       params.orderBy = {
         name: Prisma.SortOrder.asc,
@@ -37,7 +37,7 @@ export class ProjectsService {
     });
 
     return {
-      pageIndex: params.skip,
+      page: params.skip,
       pageSize: params.take,
       count,
       data,
