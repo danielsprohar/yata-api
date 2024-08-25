@@ -1,16 +1,18 @@
 -- Create Workspaces table
 CREATE TABLE Workspaces (
-    workspace_id INT PRIMARY KEY AUTO_INCREMENT,
+    workspace_id BINARY(16) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    public BOOLEAN NOT NULL DEFAULT false,
+    owner_id VARCHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create Projects table
 CREATE TABLE Projects (
-    project_id INT PRIMARY KEY AUTO_INCREMENT,
-    workspace_id INT NOT NULL,
+    project_id BINARY(16) PRIMARY KEY,
+    workspace_id BINARY(16) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     status ENUM('Not Started', 'In Progress', 'Completed') DEFAULT 'Not Started',
@@ -21,9 +23,9 @@ CREATE TABLE Projects (
 
 -- Create Tasks table with recursive relationship
 CREATE TABLE Tasks (
-    task_id INT PRIMARY KEY AUTO_INCREMENT,
-    project_id INT NOT NULL,
-    parent_task_id INT,
+    task_id BINARY(16) PRIMARY KEY,
+    project_id BINARY(16) NOT NULL,
+    parent_task_id BINARY(16),
     name VARCHAR(255) NOT NULL,
     description TEXT,
     status ENUM('Not Started', 'In Progress', 'Completed') DEFAULT 'Not Started',

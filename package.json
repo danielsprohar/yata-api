@@ -4,9 +4,6 @@
   "description": "",
   "author": "",
   "license": "MIT",
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
   "scripts": {
     "prisma:dev:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
