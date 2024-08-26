@@ -42,6 +42,7 @@ export class WorkspacesController {
       if (e instanceof WorkspaceNotFoundException) {
         throw new NotFoundException();
       }
+      console.error(e);
       throw new UnprocessableEntityException();
     }
   }
@@ -57,7 +58,8 @@ export class WorkspacesController {
       if (e instanceof WorkspaceNotFoundException) {
         throw new NotFoundException();
       }
-      throw new UnprocessableEntityException();
+      console.error(e);
+      throw new UnprocessableEntityException(e);
     }
   }
 
@@ -70,7 +72,8 @@ export class WorkspacesController {
       if (e instanceof WorkspaceNotFoundException) {
         throw new NotFoundException();
       }
-      throw new UnprocessableEntityException();
+      console.error(e);
+      throw new UnprocessableEntityException(e);
     }
   }
 }
