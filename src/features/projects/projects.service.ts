@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PageResponse } from '../../core/model/page-response.model';
 import { generateId } from '../../core/utils/uuid.util';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WorkspaceNotFoundException } from '../workspaces/exception/workspace-not-found.exception';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectNotFoundException } from './exception/project-not-found.exception';
@@ -12,6 +13,16 @@ export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createProjectDto: CreateProjectDto): Promise<ProjectModel> {
+    const workspaceCount = await this.prisma.workspace.count({
+      where: {
+        id: Buffer.from(createProjectDto.workspaceId),
+      },
+    });
+
+    if (workspaceCount === 0) {
+      throw new WorkspaceNotFoundException();
+    }
+
     const project = await this.prisma.project.create({
       data: {
         id: generateId(),
@@ -35,7 +46,7 @@ export class ProjectsService {
     const [data, count] = await Promise.all([
       this.prisma.project.findMany({
         skip: page * pageSize,
-        take: pageSize,
+        take: Math.min(pageSize, 50),
       }),
       this.prisma.project.count(),
     ]);

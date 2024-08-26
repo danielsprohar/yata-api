@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE `Workspaces` (
-    `id` BINARY(16) NOT NULL,
+    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
     `name` VARCHAR(255) NOT NULL,
     `description` TEXT NULL,
     `public` BOOLEAN NOT NULL DEFAULT false,
@@ -13,11 +13,11 @@ CREATE TABLE `Workspaces` (
 
 -- CreateTable
 CREATE TABLE `Projects` (
-    `id` BINARY(16) NOT NULL DEFAULT (uuid_to_bin(uuid())),
-    `workspace_id` BINARY(16) NOT NULL,
+    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
+    `workspace_id` BINARY(36) NOT NULL,
     `name` VARCHAR(255) NOT NULL,
     `description` TEXT NULL,
-    `status` ENUM('Not Started', 'In Progress', 'COMPLETED') NOT NULL DEFAULT 'Not Started',
+    `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 
@@ -27,12 +27,12 @@ CREATE TABLE `Projects` (
 
 -- CreateTable
 CREATE TABLE `Tasks` (
-    `id` BINARY(16) NOT NULL DEFAULT (uuid_to_bin(uuid())),
-    `project_id` BINARY(16) NOT NULL,
-    `parent_task_id` BINARY(16) NULL,
+    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
+    `project_id` BINARY(36) NOT NULL,
+    `parent_task_id` BINARY(36) NULL,
     `name` VARCHAR(255) NOT NULL,
     `description` TEXT NULL,
-    `status` ENUM('Not Started', 'In Progress', 'COMPLETED') NOT NULL DEFAULT 'Not Started',
+    `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
     `due_date` DATETIME(3) NULL,
     `priority` ENUM('LOW', 'MEDIUM', 'HIGH') NOT NULL DEFAULT 'MEDIUM',
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),

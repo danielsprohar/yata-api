@@ -59,14 +59,14 @@ model Task {
 }
 
 enum ProjectStatus {
-  NOT_STARTED @map("Not Started")
-  IN_PROGRESS @map("In Progress")
+  NOT_STARTED
+  IN_PROGRESS
   COMPLETED
 }
 
 enum TaskStatus {
-  NOT_STARTED @map("Not Started")
-  IN_PROGRESS @map("In Progress")
+  NOT_STARTED
+  IN_PROGRESS
   COMPLETED
 }
 

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,14 +16,23 @@ import { WorkspaceNotFoundException } from '../workspaces/exception/workspace-no
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
+import { isNumber } from 'class-validator';
 
 @Controller('projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  create(@Body() createProjectDto: CreateProjectDto) {
-    return this.projectsService.create(createProjectDto);
+  async create(@Body() createProjectDto: CreateProjectDto) {
+    try {
+      return await this.projectsService.create(createProjectDto);
+    } catch (e) {
+      console.error(e);
+      if (e instanceof WorkspaceNotFoundException) {
+        throw new NotFoundException();
+      }
+      throw new UnprocessableEntityException(e);
+    }
   }
 
   @Get()
@@ -30,7 +40,17 @@ export class ProjectsController {
     @Query('page') page: string = '0',
     @Query('pageSize') pageSize: string = '10',
   ) {
-    return this.projectsService.findAll(+page, +pageSize);
+    if (!isNumber(page)) {
+      throw new BadRequestException('Invalid page value');
+    }
+    if (!isNumber(pageSize)) {
+      throw new BadRequestException('Invalid pageSize value');
+    }
+
+    return this.projectsService.findAll(
+      Math.max(0, parseInt(page, 10)),
+      Math.max(1, parseInt(pageSize, 10)),
+    );
   }
 
   @Get(':id')
