@@ -11,7 +11,7 @@ datasource db {
 }
 
 model Workspace {
-  id          Bytes     @id @db.Binary(16)
+  id          Bytes     @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
   name        String    @db.VarChar(255)
   description String?   @db.Text
   public      Boolean   @default(false)
@@ -24,8 +24,8 @@ model Workspace {
 }
 
 model Project {
-  id          Bytes         @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(16)
-  workspaceId Bytes         @map("workspace_id") @db.Binary(16)
+  id          Bytes         @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  workspaceId Bytes         @map("workspace_id") @db.Binary(36)
   name        String        @db.VarChar(255)
   description String?       @db.Text
   status      ProjectStatus @default(NOT_STARTED)
@@ -39,9 +39,9 @@ model Project {
 }
 
 model Task {
-  id           Bytes      @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(16)
-  projectId    Bytes      @map("project_id") @db.Binary(16)
-  parentTaskId Bytes?     @map("parent_task_id") @db.Binary(16)
+  id           Bytes      @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  projectId    Bytes      @map("project_id") @db.Binary(36)
+  parentTaskId Bytes?     @map("parent_task_id") @db.Binary(36)
   name         String     @db.VarChar(255)
   description  String?    @db.Text
   status       TaskStatus @default(NOT_STARTED)

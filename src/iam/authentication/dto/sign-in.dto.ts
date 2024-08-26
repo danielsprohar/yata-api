@@ -1,10 +1,8 @@
-import { IsEmail, MinLength } from "class-validator";
-import { User } from "../../../users/entities/user.entity";
+import { IsEmail } from 'class-validator';
 
 export class SignInDto {
   @IsEmail()
   email: string;
 
-  @MinLength(User.Password.MinLength)
   password: string;
 }

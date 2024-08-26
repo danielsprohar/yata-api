@@ -64,4 +64,9 @@ Once the installation process is complete you can start the server:
 npm run start
 ```
 
-Navigate to http://localhost:3000/swagger to see the Swagger document.
+
+## Apply Migration
+
+```sh
+npx prisma migrate dev --name init
+```

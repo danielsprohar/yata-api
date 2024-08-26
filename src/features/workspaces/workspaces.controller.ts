@@ -1,7 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { WorkspacesService } from './workspaces.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { FindOneParam } from '../../core/dto/find-one-param';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
+import { WorkspaceNotFoundException } from './exception/workspace-not-found.exception';
+import { WorkspacesService } from './workspaces.service';
 
 @Controller('workspaces')
 export class WorkspacesController {
@@ -13,22 +27,50 @@ export class WorkspacesController {
   }
 
   @Get()
-  findAll() {
-    return this.workspacesService.findAll();
+  findAll(
+    @Query('page') page: string = '0',
+    @Query('pageSize') pageSize: string = '10',
+  ) {
+    return this.workspacesService.findAll(+page, +pageSize);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.workspacesService.findOne(+id);
+  async findOne(@Param() params: FindOneParam) {
+    try {
+      return await this.workspacesService.findOne(params.id);
+    } catch (e) {
+      if (e instanceof WorkspaceNotFoundException) {
+        throw new NotFoundException();
+      }
+      throw new UnprocessableEntityException();
+    }
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateWorkspaceDto: UpdateWorkspaceDto) {
-    return this.workspacesService.update(+id, updateWorkspaceDto);
+  async update(
+    @Param() params: FindOneParam,
+    @Body() updateWorkspaceDto: UpdateWorkspaceDto,
+  ) {
+    try {
+      return await this.workspacesService.update(params.id, updateWorkspaceDto);
+    } catch (e) {
+      if (e instanceof WorkspaceNotFoundException) {
+        throw new NotFoundException();
+      }
+      throw new UnprocessableEntityException();
+    }
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.workspacesService.remove(+id);
+  @HttpCode(204)
+  async remove(@Param() params: FindOneParam) {
+    try {
+      await this.workspacesService.remove(params.id);
+    } catch (e) {
+      if (e instanceof WorkspaceNotFoundException) {
+        throw new NotFoundException();
+      }
+      throw new UnprocessableEntityException();
+    }
   }
 }

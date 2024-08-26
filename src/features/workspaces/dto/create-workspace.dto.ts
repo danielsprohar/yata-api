@@ -1,6 +1,18 @@
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+
 export class CreateWorkspaceDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
   name: string;
+
+  @IsOptional()
+  @MaxLength(255)
   description: string;
+  
   public?: boolean;
-  ownerId?: number;
+  
+  @IsOptional()
+  @MaxLength(36)
+  ownerId?: string;
 }
