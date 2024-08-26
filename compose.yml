@@ -13,24 +13,62 @@ services:
     volumes:
       - db-data:/var/lib/mysql
     networks:
-      - yata
+      - backend
 
   redis:
-    image: redis
-    container_name: yata_redis
+    image: redis:7.4-alpine
+    container_name: yata-redis-cache
     restart: unless-stopped
     ports:
       - 6379:6379
     volumes:
       - redis-data:/data
     networks:
-      - yata
+      - backend
 
-networks:
-  yata:
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.2
+    container_name: yata-keycloak
+    ports:
+      - "8888:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: password
+      KC_DB: mariadb
+      KC_DB_USERNAME: kcUser
+      KC_DB_PASSWORD: password
+      KC_DB_URL_HOST: keycloak-db
+    command:
+      - start-dev
+    volumes:
+      - keycloak-data:/data/keycloak
+    depends_on:
+      postgres:
+        condition: service_started
+    networks:
+      - backend
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: yata-keycloak-postgres
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: strong_password
+    volumes:
+      - keycloak-data:/var/lib/postgresql/data
+    networks:
+      - keycloak-network
 
 volumes:
   db-data:
+  keycloak-data:
   redis-data:
     driver: local
+
+networks:
+  backend:
+  keycloak-network:
