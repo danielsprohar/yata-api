@@ -1,4 +1,4 @@
-import { ProjectStatus } from '@prisma/client';
+import { ProjectStatus, ProjectView } from '@prisma/client';
 import {
   IsEnum,
   IsOptional,
@@ -22,4 +22,8 @@ export class CreateProjectDto {
   @IsOptional()
   @IsEnum(ProjectStatus)
   status?: ProjectStatus;
+
+  @IsOptional()
+  @IsEnum(ProjectView)
+  view?: ProjectView;
 }
