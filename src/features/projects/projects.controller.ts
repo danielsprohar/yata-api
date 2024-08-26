@@ -11,12 +11,12 @@ import {
   Query,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { isNumber } from 'class-validator';
 import { FindOneParam } from '../../core/dto/find-one-param';
 import { WorkspaceNotFoundException } from '../workspaces/exception/workspace-not-found.exception';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
-import { isNumber } from 'class-validator';
 
 @Controller('projects')
 export class ProjectsController {
@@ -36,20 +36,17 @@ export class ProjectsController {
   }
 
   @Get()
-  findAll(
-    @Query('page') page: string = '0',
-    @Query('pageSize') pageSize: string = '10',
-  ) {
-    if (!isNumber(page)) {
+  findAll(@Query('page') page: string, @Query('pageSize') pageSize: string) {
+    if (page && !isNumber(page)) {
       throw new BadRequestException('Invalid page value');
     }
-    if (!isNumber(pageSize)) {
+    if (pageSize && !isNumber(pageSize)) {
       throw new BadRequestException('Invalid pageSize value');
     }
 
     return this.projectsService.findAll(
-      Math.max(0, parseInt(page, 10)),
-      Math.max(1, parseInt(pageSize, 10)),
+      page ? Math.max(0, parseInt(page, 10)) : 0,
+      pageSize ? Math.max(1, parseInt(pageSize, 10)) : 10,
     );
   }
 
