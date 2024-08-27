@@ -42,11 +42,15 @@ export class ProjectsService {
   async findAll(
     page: number,
     pageSize: number,
+    workspaceId?: string,
   ): Promise<PageResponse<ProjectModel>> {
     const [data, count] = await Promise.all([
       this.prisma.project.findMany({
         skip: page * pageSize,
         take: Math.min(pageSize, 50),
+        where: {
+          workspaceId: workspaceId ? Buffer.from(workspaceId) : undefined,
+        },
       }),
       this.prisma.project.count(),
     ]);

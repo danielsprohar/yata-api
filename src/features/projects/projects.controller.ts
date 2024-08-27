@@ -36,7 +36,11 @@ export class ProjectsController {
   }
 
   @Get()
-  findAll(@Query('page') page: string, @Query('pageSize') pageSize: string) {
+  findAll(
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
+    @Query('workspaceId') workspaceId: string,
+  ) {
     if (page && !isNumber(page)) {
       throw new BadRequestException('Invalid page value');
     }
@@ -47,6 +51,7 @@ export class ProjectsController {
     return this.projectsService.findAll(
       page ? Math.max(0, parseInt(page, 10)) : 0,
       pageSize ? Math.max(1, parseInt(pageSize, 10)) : 10,
+      workspaceId,
     );
   }
 
