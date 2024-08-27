@@ -50,10 +50,10 @@ export class TasksController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    if (page && !isNumber(page)) {
+    if (page && Number.isNaN(Number.parseInt(page))) {
       throw new BadRequestException('Invalid page value');
     }
-    if (pageSize && !isNumber(pageSize)) {
+    if (pageSize && Number.isNaN(Number.parseInt(pageSize))) {
       throw new BadRequestException('Invalid pageSize value');
     }
     if (projectId && !isUUID(projectId)) {

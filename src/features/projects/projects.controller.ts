@@ -41,10 +41,10 @@ export class ProjectsController {
     @Query('pageSize') pageSize: string,
     @Query('workspaceId') workspaceId: string,
   ) {
-    if (page && !isNumber(page)) {
+    if (page && Number.isNaN(Number.parseInt(page))) {
       throw new BadRequestException('Invalid page value');
     }
-    if (pageSize && !isNumber(pageSize)) {
+    if (pageSize && Number.isNaN(Number.parseInt(pageSize))) {
       throw new BadRequestException('Invalid pageSize value');
     }
 
