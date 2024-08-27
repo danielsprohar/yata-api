@@ -12,7 +12,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
-import { isNumber, isUUID } from 'class-validator';
+import { isUUID } from 'class-validator';
 import { FindOneParam } from '../../core/dto/find-one-param';
 import { ProjectNotFoundException } from '../projects/exception/project-not-found.exception';
 import { CreateTaskDto } from './dto/create-task.dto';
