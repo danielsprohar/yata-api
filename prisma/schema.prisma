@@ -19,6 +19,7 @@ model Workspace {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   projects    Project[]
+  Task        Task[]
 
   @@map("Workspaces")
 }
@@ -41,6 +42,7 @@ model Project {
 
 model Task {
   id           Bytes      @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  workspaceId  Bytes      @map("workspace_id") @db.Binary(36)
   projectId    Bytes      @map("project_id") @db.Binary(36)
   parentTaskId Bytes?     @map("parent_task_id") @db.Binary(36)
   name         String     @db.VarChar(255)
@@ -51,12 +53,15 @@ model Task {
   completedAt  DateTime?  @map("completed_at")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
+  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parentTask   Task?      @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
   subTasks     Task[]     @relation("SubTasks")
 
   @@index([projectId])
   @@index([parentTaskId])
+  @@index([workspaceId])
+  @@index([name])
   @@map("Tasks")
 }
 

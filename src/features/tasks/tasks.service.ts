@@ -14,13 +14,16 @@ export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createTaskDto: CreateTaskDto): Promise<TaskModel> {
-    const projectCount = await this.prisma.project.count({
+    const project = await this.prisma.project.findUnique({
       where: {
         id: Buffer.from(createTaskDto.projectId),
       },
+      select: {
+        workspaceId: true,
+      },
     });
 
-    if (projectCount === 0) {
+    if (!project) {
       throw new ProjectNotFoundException();
     }
 
@@ -44,6 +47,7 @@ export class TasksService {
         status: createTaskDto.status,
         dueDate: createTaskDto.dueDate,
         priority: createTaskDto.priority,
+        workspaceId: Buffer.from(project.workspaceId),
         projectId: Buffer.from(createTaskDto.projectId),
         parentTaskId: createTaskDto.parentTaskId
           ? Buffer.from(createTaskDto.parentTaskId)
@@ -56,6 +60,7 @@ export class TasksService {
       id: task.id.toString(),
       projectId: task.projectId.toString(),
       parentTaskId: task.parentTaskId?.toString(),
+      workspaceId: task.workspaceId.toString(),
     };
   }
 
@@ -114,6 +119,7 @@ export class TasksService {
         id: task.id.toString(),
         projectId: task.projectId.toString(),
         parentTaskId: task.parentTaskId?.toString(),
+        workspaceId: task.workspaceId.toString(),
       })),
     };
   }
@@ -137,11 +143,13 @@ export class TasksService {
       id: task.id.toString(),
       projectId: task.projectId.toString(),
       parentTaskId: task.parentTaskId?.toString(),
+      workspaceId: task.workspaceId.toString(),
       subTasks: task.subTasks.map((subTask) => ({
         ...subTask,
         id: subTask.id.toString(),
         projectId: subTask.projectId.toString(),
         parentTaskId: subTask.parentTaskId?.toString(),
+        workspaceId: task.workspaceId.toString(),
       })),
     };
   }
@@ -185,6 +193,7 @@ export class TasksService {
         id: updatedTask.id.toString(),
         projectId: updatedTask.projectId.toString(),
         parentTaskId: updatedTask.parentTaskId?.toString(),
+        workspaceId: task.workspaceId.toString(),
       }));
   }
 
