@@ -12,7 +12,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
-import { isUUID } from 'class-validator';
+import { isNumber, isUUID } from 'class-validator';
 import { FindOneParam } from '../../core/dto/find-one-param';
 import { ProjectNotFoundException } from '../projects/exception/project-not-found.exception';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -42,14 +42,20 @@ export class TasksController {
 
   @Get()
   findAll(
-    @Query('page') page: string = '0',
-    @Query('pageSize') pageSize: string = '10',
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
     @Query('projectId') projectId?: string,
     @Query('workspaceId') workspaceId?: string,
     @Query('status') status?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
+    if (page && !isNumber(page)) {
+      throw new BadRequestException('Invalid page value');
+    }
+    if (pageSize && !isNumber(pageSize)) {
+      throw new BadRequestException('Invalid pageSize value');
+    }
     if (projectId && !isUUID(projectId)) {
       throw new BadRequestException(
         'Invalid project ID: value must be a valid UUIDv4',
