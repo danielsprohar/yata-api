@@ -48,6 +48,7 @@ model Task {
   status       TaskStatus @default(NOT_STARTED)
   dueDate      DateTime?  @map("due_date")
   priority     Priority   @default(MEDIUM)
+  completedAt  DateTime?  @map("completed_at")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
   project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)

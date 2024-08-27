@@ -174,6 +174,10 @@ export class TasksService {
           parentTaskId: updateTaskDto.parentTaskId
             ? Buffer.from(updateTaskDto.parentTaskId)
             : undefined,
+          completedAt:
+            updateTaskDto.status === TaskStatus.COMPLETED
+              ? new Date()
+              : undefined,
         },
       })
       .then((updatedTask) => ({
