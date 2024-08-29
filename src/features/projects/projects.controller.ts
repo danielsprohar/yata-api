@@ -11,7 +11,6 @@ import {
   Query,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { isNumber } from 'class-validator';
 import { FindOneParam } from '../../core/dto/find-one-param';
 import { WorkspaceNotFoundException } from '../workspaces/exception/workspace-not-found.exception';
 import { CreateProjectDto } from './dto/create-project.dto';
