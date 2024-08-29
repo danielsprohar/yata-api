@@ -107,7 +107,9 @@ export class TasksService {
         take: Math.min(pageSize, 50),
         where: taskFilter,
       }),
-      this.prisma.task.count(),
+      this.prisma.task.count({
+        where: taskFilter,
+      }),
     ]);
 
     return {
