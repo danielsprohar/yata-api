@@ -48,4 +48,8 @@ export class CreateTaskDto {
   @IsOptional()
   @IsEnum(Priority)
   priority?: Priority;
+
+  @IsOptional()
+  @IsString()
+  rrule?: string;
 }

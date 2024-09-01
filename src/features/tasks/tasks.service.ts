@@ -193,6 +193,8 @@ export class TasksService {
           projectId: dto.projectId ? Buffer.from(dto.projectId) : undefined,
           columnId: dto.columnId ? Buffer.from(dto.columnId) : undefined,
           parentId: dto.parentId ? Buffer.from(dto.parentId) : undefined,
+          startedAt:
+            dto.status === TaskStatus.IN_PROGRESS ? new Date() : undefined,
           completedAt:
             dto.status === TaskStatus.COMPLETED ? new Date() : undefined,
         },

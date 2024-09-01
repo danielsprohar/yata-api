@@ -111,13 +111,15 @@ model Task {
   dueDate     DateTime?  @map("due_date")
   priority    Priority   @default(MEDIUM)
   allDay      Boolean    @default(true) @map("all_day")
-  starteddAt  DateTime?  @map("started_at")
+  startedAt  DateTime?  @map("started_at")
   completedAt DateTime?  @map("completed_at")
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
+  rrule       String?    @db.Text
+
   // relationships
-  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId Bytes      @map("workspace_id") @db.Binary(36)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId Bytes     @map("workspace_id") @db.Binary(36)
 
   Project   Project? @relation(fields: [projectId], references: [id])
   projectId Bytes?   @map("project_id") @db.Binary(36)

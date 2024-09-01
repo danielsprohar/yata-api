@@ -97,6 +97,7 @@ CREATE TABLE `Task` (
     `completed_at` DATETIME(3) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `rrule` TEXT NULL,
     `workspace_id` BINARY(36) NOT NULL,
     `project_id` BINARY(36) NULL,
     `column_id` BINARY(36) NULL,
