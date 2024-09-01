@@ -12,6 +12,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
+import { FindOneParam } from '../../core/dto/find-one-param';
 import { CreateKanbanColumnDto } from './dto/create-kanban-column.dto';
 import { UpdateKanbanDto } from './dto/update-kanban-column.dto';
 import { KanbanService } from './kanban.service';
@@ -49,18 +50,21 @@ export class KanbanController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.kanbanService.findOne(id);
+  findOne(@Param() params: FindOneParam) {
+    return this.kanbanService.findOne(params.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateKanbanDto: UpdateKanbanDto) {
-    return this.kanbanService.update(id, updateKanbanDto);
+  update(
+    @Param() params: FindOneParam,
+    @Body() updateKanbanDto: UpdateKanbanDto,
+  ) {
+    return this.kanbanService.update(params.id, updateKanbanDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string) {
-    return this.kanbanService.remove(id);
+  remove(@Param() params: FindOneParam) {
+    return this.kanbanService.remove(params.id);
   }
 }
