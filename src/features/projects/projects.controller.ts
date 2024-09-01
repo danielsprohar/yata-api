@@ -4,6 +4,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   Patch,
@@ -11,6 +13,7 @@ import {
   Query,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { isUUID } from 'class-validator';
 import { FindOneParam } from '../../core/dto/find-one-param';
 import { WorkspaceNotFoundException } from '../workspaces/exception/workspace-not-found.exception';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -22,6 +25,7 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
+  @HttpCode(HttpStatus.OK)
   async create(@Body() createProjectDto: CreateProjectDto) {
     try {
       return await this.projectsService.create(createProjectDto);
@@ -45,6 +49,9 @@ export class ProjectsController {
     }
     if (pageSize && Number.isNaN(Number.parseInt(pageSize))) {
       throw new BadRequestException('Invalid pageSize value');
+    }
+    if (workspaceId && !isUUID(workspaceId)) {
+      throw new BadRequestException('Invalid workspaceId value');
     }
 
     return this.projectsService.findAll(
@@ -84,6 +91,7 @@ export class ProjectsController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param() params: FindOneParam) {
     try {
       await this.projectsService.remove(params.id);

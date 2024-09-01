@@ -25,41 +25,59 @@ model Workspace {
 }
 
 model Project {
-  id          Bytes         @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  workspaceId Bytes         @map("workspace_id") @db.Binary(36)
-  name        String        @db.VarChar(255)
-  description String?       @db.Text
-  status      ProjectStatus @default(NOT_STARTED)
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  tasks       Task[]
+  id           Bytes          @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  workspaceId  Bytes          @map("workspace_id") @db.Binary(36)
+  name         String         @db.VarChar(255)
+  description  String?        @db.Text
+  status       ProjectStatus  @default(NOT_STARTED)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+  KanbanColumn KanbanColumn[]
 
   @@index([workspaceId])
   @@map("Projects")
 }
 
-model Task {
-  id           Bytes      @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  workspaceId  Bytes      @map("workspace_id") @db.Binary(36)
-  projectId    Bytes      @map("project_id") @db.Binary(36)
-  parentTaskId Bytes?     @map("parent_task_id") @db.Binary(36)
-  name         String     @db.VarChar(255)
-  description  String?    @db.Text
-  status       TaskStatus @default(NOT_STARTED)
-  dueDate      DateTime?  @map("due_date")
-  priority     Priority   @default(MEDIUM)
-  allDay       Boolean    @default(true) @map("all_day")
-  completedAt  DateTime?  @map("completed_at")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
-  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parentTask   Task?      @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
-  subTasks     Task[]     @relation("SubTasks")
+model KanbanColumn {
+  id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  projectId   Bytes    @map("project_id") @db.Binary(36)
+  name        String   @db.VarChar(128)
+  description String?  @db.Text
+  position    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
 
   @@index([projectId])
-  @@index([parentTaskId])
+  @@map("KanbanColumns")
+}
+
+model Task {
+  id             Bytes         @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  workspaceId    Bytes         @map("workspace_id") @db.Binary(36)
+  projectId      Bytes         @map("project_id") @db.Binary(36)
+  parentId       Bytes?        @map("parent_id") @db.Binary(36)
+  name           String        @db.VarChar(255)
+  description    String?       @db.Text
+  status         TaskStatus    @default(NOT_STARTED)
+  dueDate        DateTime?     @map("due_date")
+  priority       Priority      @default(MEDIUM)
+  allDay         Boolean       @default(true) @map("all_day")
+  completedAt    DateTime?     @map("completed_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentTask     Task?         @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subTasks       Task[]        @relation("SubTasks")
+  KanbanColumn   KanbanColumn? @relation(fields: [kanbanColumnId], references: [id])
+  kanbanColumnId Bytes?        @db.Binary(36)
+
+  @@index([projectId])
+  @@index([parentId])
   @@index([workspaceId])
   @@index([name])
   @@map("Tasks")
