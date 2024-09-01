@@ -4,18 +4,18 @@ import { IsEnum, IsNumberString, IsOptional } from 'class-validator';
 
 export class QueryParams {
   static readonly SKIP_DEFAULT = 0;
-  static readonly TAKE_DEFAULT = 100;
+  static readonly TAKE_DEFAULT = 50;
   static readonly MAX_TAKE = 100;
 
   @IsNumberString()
   @ApiProperty({ description: 'The page index' })
   @IsOptional()
-  skip?: string;
+  page?: string;
 
   @IsNumberString()
   @ApiProperty({ description: 'The page size' })
   @IsOptional()
-  take?: string;
+  pageSize?: string;
 
   @ApiProperty({
     enum: Prisma.SortOrder,

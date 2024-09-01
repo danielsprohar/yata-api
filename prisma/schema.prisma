@@ -10,78 +10,130 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Workspace {
-  id          Bytes     @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  name        String    @db.VarChar(255)
-  description String?   @db.Text
-  public      Boolean   @default(false)
-  ownerId     String?   @map("owner_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  projects    Project[]
-  Task        Task[]
+model Calendar {
+  id          Bytes           @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  name        String          @db.VarChar(255)
+  description String?         @db.Text
+  public      Boolean         @default(false)
+  ownerId     String?         @map("owner_id")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  events      CalendarEvent[]
 
-  @@map("Workspaces")
+  @@index([name])
+}
+
+model CalendarEvent {
+  id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  start       DateTime @map("start_date")
+  end         DateTime @map("end_date")
+  allDay      Boolean  @default(true) @map("all_day")
+  rrule       String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  calendarId Bytes    @map("calendar_id") @db.Binary(36)
+  calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@index([name])
+}
+
+model Workspace {
+  id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  public      Boolean  @default(false)
+  ownerId     String?  @map("owner_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  projects Project[]
+  tasks    Task[]
+  boards   Board[]
+
+  @@index([name])
 }
 
 model Project {
-  id           Bytes          @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  workspaceId  Bytes          @map("workspace_id") @db.Binary(36)
-  name         String         @db.VarChar(255)
-  description  String?        @db.Text
-  status       ProjectStatus  @default(NOT_STARTED)
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  tasks        Task[]
-  KanbanColumn KanbanColumn[]
+  id          Bytes         @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  name        String        @db.VarChar(255)
+  description String?       @db.Text
+  status      ProjectStatus @default(NOT_STARTED)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  @@index([workspaceId])
-  @@map("Projects")
+  workspaceId Bytes     @map("workspace_id") @db.Binary(36)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@index([name])
 }
 
-model KanbanColumn {
+model Board {
   id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  projectId   Bytes    @map("project_id") @db.Binary(36)
+  name        String   @db.VarChar(128)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId Bytes     @map("workspace_id") @db.Binary(36)
+
+  columns Column[]
+
+  @@index([name])
+}
+
+model Column {
+  id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
   name        String   @db.VarChar(128)
   description String?  @db.Text
   position    Int      @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks       Task[]
 
-  @@index([projectId])
-  @@map("KanbanColumns")
+  Board   Board @relation(fields: [boardId], references: [id])
+  boardId Bytes @map("board_id") @db.Binary(36)
+
+  tasks Task[]
+
+  @@index([name])
 }
 
 model Task {
-  id             Bytes         @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  workspaceId    Bytes         @map("workspace_id") @db.Binary(36)
-  projectId      Bytes         @map("project_id") @db.Binary(36)
-  parentId       Bytes?        @map("parent_id") @db.Binary(36)
-  name           String        @db.VarChar(255)
-  description    String?       @db.Text
-  status         TaskStatus    @default(NOT_STARTED)
-  dueDate        DateTime?     @map("due_date")
-  priority       Priority      @default(MEDIUM)
-  allDay         Boolean       @default(true) @map("all_day")
-  completedAt    DateTime?     @map("completed_at")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parentTask     Task?         @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
-  subTasks       Task[]        @relation("SubTasks")
-  KanbanColumn   KanbanColumn? @relation(fields: [kanbanColumnId], references: [id])
-  kanbanColumnId Bytes?        @db.Binary(36)
+  id          Bytes      @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  name        String     @db.VarChar(255)
+  description String?    @db.Text
+  status      TaskStatus @default(NOT_STARTED)
+  dueDate     DateTime?  @map("due_date")
+  priority    Priority   @default(MEDIUM)
+  allDay      Boolean    @default(true) @map("all_day")
+  starteddAt  DateTime?  @map("started_at")
+  completedAt DateTime?  @map("completed_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  // relationships
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId Bytes      @map("workspace_id") @db.Binary(36)
 
-  @@index([projectId])
-  @@index([parentId])
-  @@index([workspaceId])
+  Project   Project? @relation(fields: [projectId], references: [id])
+  projectId Bytes?   @map("project_id") @db.Binary(36)
+
+  Column   Column? @relation(fields: [columnId], references: [id])
+  columnId Bytes?  @map("column_id") @db.Binary(36)
+
+  parent   Task?  @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId Bytes? @map("parent_id") @db.Binary(36)
+
+  subtasks Task[] @relation("SubTasks")
+
   @@index([name])
-  @@map("Tasks")
 }
+
+// Enums
 
 enum ProjectStatus {
   NOT_STARTED

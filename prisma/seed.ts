@@ -8,7 +8,7 @@ async function main() {
   await prisma.project.deleteMany();
   await prisma.workspace.deleteMany();
 
-  const trailwindsWorkspace = await prisma.workspace.create({
+  const workspace = await prisma.workspace.create({
     data: {
       id: Buffer.from(uuidv4()),
       name: 'YATA',
@@ -20,40 +20,58 @@ async function main() {
       {
         id: Buffer.from(uuidv4()),
         name: 'Frontend',
-        workspaceId: trailwindsWorkspace.id,
+        workspaceId: workspace.id,
       },
       {
         id: Buffer.from(uuidv4()),
         name: 'Backend',
-        workspaceId: trailwindsWorkspace.id,
+        workspaceId: workspace.id,
       },
     ],
   });
 
-  const projects = await prisma.project.findMany({
-    where: {
-      workspaceId: trailwindsWorkspace.id,
-    },
+  await prisma.task.createMany({
+    data: [
+      {
+        id: Buffer.from(uuidv4()),
+        name: 'Create a new workspace',
+        workspaceId: workspace.id,
+      },
+      {
+        id: Buffer.from(uuidv4()),
+        name: 'Create a new project',
+        workspaceId: workspace.id,
+      },
+      {
+        id: Buffer.from(uuidv4()),
+        name: 'Create a new task',
+        workspaceId: workspace.id,
+      },
+      {
+        id: Buffer.from(uuidv4()),
+        name: 'Create a new calendar',
+        workspaceId: workspace.id,
+      },
+      {
+        id: Buffer.from(uuidv4()),
+        name: 'Create a board',
+        workspaceId: workspace.id,
+      },
+      {
+        id: Buffer.from(uuidv4()),
+        name: 'Create a board columns',
+        workspaceId: workspace.id,
+      },
+    ],
   });
 
-  for (const project of projects) {
-    await prisma.task.createMany({
-      data: [
-        {
-          id: Buffer.from(uuidv4()),
-          name: 'Create a new project',
-          projectId: project.id,
-          workspaceId: trailwindsWorkspace.id,
-        },
-        {
-          id: Buffer.from(uuidv4()),
-          name: 'Create a new task',
-          projectId: project.id,
-          workspaceId: trailwindsWorkspace.id,
-        },
-      ],
-    });
-  }
+  await prisma.board.create({
+    data: {
+      id: Buffer.from(uuidv4()),
+      name: 'My First Kanban',
+      workspaceId: workspace.id,
+    },
+  });
 }
 
 main()

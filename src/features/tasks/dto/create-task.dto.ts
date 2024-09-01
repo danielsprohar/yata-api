@@ -10,11 +10,23 @@ import {
 
 export class CreateTaskDto {
   @IsUUID()
-  projectId: string;
+  workspaceId: string;
 
   @IsOptional()
   @IsUUID()
-  parentId: string;
+  parentId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  boardId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  columnId?: string;
 
   @IsString()
   @MaxLength(255)
@@ -23,15 +35,15 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  description: string;
+  description?: string;
 
   @IsOptional()
   @IsEnum(TaskStatus)
-  status: TaskStatus;
+  status?: TaskStatus;
 
   @IsOptional()
   @IsISO8601()
-  dueDate: Date;
+  dueDate?: Date;
 
   @IsOptional()
   @IsEnum(Priority)
