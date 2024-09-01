@@ -27,10 +27,10 @@ export class TasksService {
       throw new ProjectNotFoundException();
     }
 
-    if (createTaskDto.parentTaskId) {
+    if (createTaskDto.parentId) {
       const parentTaskCount = await this.prisma.task.count({
         where: {
-          id: Buffer.from(createTaskDto.parentTaskId),
+          id: Buffer.from(createTaskDto.parentId),
         },
       });
 
@@ -49,8 +49,8 @@ export class TasksService {
         priority: createTaskDto.priority,
         workspaceId: Buffer.from(project.workspaceId),
         projectId: Buffer.from(createTaskDto.projectId),
-        parentTaskId: createTaskDto.parentTaskId
-          ? Buffer.from(createTaskDto.parentTaskId)
+        parentId: createTaskDto.parentId
+          ? Buffer.from(createTaskDto.parentId)
           : undefined,
       },
     });
@@ -59,7 +59,7 @@ export class TasksService {
       ...task,
       id: task.id.toString(),
       projectId: task.projectId.toString(),
-      parentTaskId: task.parentTaskId?.toString(),
+      parentId: task.parentId?.toString(),
       workspaceId: task.workspaceId.toString(),
     };
   }
@@ -120,7 +120,7 @@ export class TasksService {
         ...task,
         id: task.id.toString(),
         projectId: task.projectId.toString(),
-        parentTaskId: task.parentTaskId?.toString(),
+        parentId: task.parentId?.toString(),
         workspaceId: task.workspaceId.toString(),
       })),
     };
@@ -144,13 +144,13 @@ export class TasksService {
       ...task,
       id: task.id.toString(),
       projectId: task.projectId.toString(),
-      parentTaskId: task.parentTaskId?.toString(),
+      parentId: task.parentId?.toString(),
       workspaceId: task.workspaceId.toString(),
       subTasks: task.subTasks.map((subTask) => ({
         ...subTask,
         id: subTask.id.toString(),
         projectId: subTask.projectId.toString(),
-        parentTaskId: subTask.parentTaskId?.toString(),
+        parentId: subTask.parentId?.toString(),
         workspaceId: task.workspaceId.toString(),
       })),
     };
@@ -181,8 +181,8 @@ export class TasksService {
           projectId: updateTaskDto.projectId
             ? Buffer.from(updateTaskDto.projectId)
             : undefined,
-          parentTaskId: updateTaskDto.parentTaskId
-            ? Buffer.from(updateTaskDto.parentTaskId)
+          parentId: updateTaskDto.parentId
+            ? Buffer.from(updateTaskDto.parentId)
             : undefined,
           completedAt:
             updateTaskDto.status === TaskStatus.COMPLETED
@@ -194,7 +194,7 @@ export class TasksService {
         ...updatedTask,
         id: updatedTask.id.toString(),
         projectId: updatedTask.projectId.toString(),
-        parentTaskId: updatedTask.parentTaskId?.toString(),
+        parentId: updatedTask.parentId?.toString(),
         workspaceId: task.workspaceId.toString(),
       }));
   }

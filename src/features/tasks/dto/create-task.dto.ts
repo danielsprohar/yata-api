@@ -14,7 +14,7 @@ export class CreateTaskDto {
 
   @IsOptional()
   @IsUUID()
-  parentTaskId: string;
+  parentId: string;
 
   @IsString()
   @MaxLength(255)
