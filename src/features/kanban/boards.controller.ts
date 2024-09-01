@@ -13,25 +13,25 @@ import {
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import { FindOneParam } from '../../core/dto/find-one-param';
-import { CreateKanbanColumnDto } from './dto/create-kanban-column.dto';
-import { UpdateKanbanDto } from './dto/update-kanban-column.dto';
-import { KanbanService } from './kanban.service';
+import { BoardsService } from './boards.service';
+import { CreateBoardDto } from './dto/create-board.dto';
+import { UpdateBoardDto } from './dto/update-board.dto';
 
-@Controller('kanban')
-export class KanbanController {
-  constructor(private readonly kanbanService: KanbanService) {}
+@Controller('boards')
+export class BoardsController {
+  constructor(private readonly boardsService: BoardsService) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  create(@Body() createKanbanDto: CreateKanbanColumnDto) {
-    return this.kanbanService.create(createKanbanDto);
+  create(@Body() dto: CreateBoardDto) {
+    return this.boardsService.create(dto);
   }
 
   @Get()
   findAll(
     @Query('page') page: string,
     @Query('pageSize') pageSize: string,
-    @Query('projectId') projectId: string,
+    @Query('workspaceId') workspaceId: string,
   ) {
     if (page && Number.isNaN(Number.parseInt(page))) {
       throw new BadRequestException('Invalid page value');
@@ -39,32 +39,29 @@ export class KanbanController {
     if (pageSize && Number.isNaN(Number.parseInt(pageSize))) {
       throw new BadRequestException('Invalid pageSize value');
     }
-    if (projectId && !isUUID(projectId)) {
-      throw new BadRequestException('Invalid projectId value');
+    if (workspaceId && !isUUID(workspaceId)) {
+      throw new BadRequestException('Invalid workspaceId value');
     }
-    return this.kanbanService.findAll(
+    return this.boardsService.findAll(
       page ? Math.max(0, parseInt(page, 10)) : 0,
       pageSize ? Math.max(1, parseInt(pageSize, 10)) : 10,
-      projectId,
+      workspaceId,
     );
   }
 
   @Get(':id')
   findOne(@Param() params: FindOneParam) {
-    return this.kanbanService.findOne(params.id);
+    return this.boardsService.findOne(params.id);
   }
 
   @Patch(':id')
-  update(
-    @Param() params: FindOneParam,
-    @Body() updateKanbanDto: UpdateKanbanDto,
-  ) {
-    return this.kanbanService.update(params.id, updateKanbanDto);
+  update(@Param() params: FindOneParam, @Body() dto: UpdateBoardDto) {
+    return this.boardsService.update(params.id, dto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param() params: FindOneParam) {
-    return this.kanbanService.remove(params.id);
+    return this.boardsService.remove(params.id);
   }
 }

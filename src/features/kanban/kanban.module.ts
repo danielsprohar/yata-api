@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { KanbanService } from './kanban.service';
-import { KanbanController } from './kanban.controller';
+import { BoardsController } from './boards.controller';
+import { BoardsService } from './boards.service';
+import { ColumnsController } from './columns.controller';
+import { ColumnsService } from './columns.service';
 
 @Module({
-  controllers: [KanbanController],
-  providers: [KanbanService]
+  controllers: [BoardsController, ColumnsController],
+  providers: [BoardsService, ColumnsService],
 })
 export class KanbanModule {}

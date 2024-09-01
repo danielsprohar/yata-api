@@ -1,12 +1,12 @@
 import { IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
-export class CreateKanbanColumnDto {
+export class CreateColumnDto {
   @IsString()
   @MaxLength(128)
   name: string;
 
   @IsUUID()
-  projectId: string;
+  boardId: string;
 
   @IsOptional()
   @MaxLength(255)

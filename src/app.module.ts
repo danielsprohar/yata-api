@@ -14,7 +14,7 @@ import { KanbanModule } from './features/kanban/kanban.module';
     ConfigModule.forRoot(),
     ThrottlerModule.forRoot({
       ttl: 10,
-      limit: 10,
+      limit: 60,
     }),
     PrismaModule,
     ProjectsModule,
