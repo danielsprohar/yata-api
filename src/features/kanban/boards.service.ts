@@ -12,7 +12,7 @@ export class BoardsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateBoardDto): Promise<BoardModel> {
-    const projectCount = await this.prisma.project.count({
+    const projectCount = await this.prisma.workspace.count({
       where: {
         id: Buffer.from(dto.workspaceId),
       },
@@ -50,17 +50,17 @@ export class BoardsService {
           workspaceId: workspaceId ? Buffer.from(workspaceId) : undefined,
         },
       }),
-      this.prisma.project.count(),
+      this.prisma.board.count(),
     ]);
 
     return {
       page,
       pageSize,
       count,
-      data: data.map((project) => ({
-        ...project,
-        id: project.id.toString(),
-        workspaceId: project.workspaceId.toString(),
+      data: data.map((board) => ({
+        ...board,
+        id: board.id.toString(),
+        workspaceId: board.workspaceId.toString(),
       })),
     };
   }

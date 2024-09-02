@@ -12,7 +12,7 @@ export class ColumnsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateColumnDto): Promise<ColumnModel> {
-    const projectCount = await this.prisma.project.count({
+    const projectCount = await this.prisma.board.count({
       where: {
         id: Buffer.from(dto.boardId),
       },
@@ -51,7 +51,7 @@ export class ColumnsService {
           boardId: boardId ? Buffer.from(boardId) : undefined,
         },
       }),
-      this.prisma.project.count(),
+      this.prisma.column.count(),
     ]);
 
     return {
