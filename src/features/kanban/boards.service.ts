@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { Board } from '@prisma/client';
 import { PageResponse } from '../../core/model/page-response.model';
+import { generateId } from '../../core/utils/uuid.util';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ProjectNotFoundException } from '../projects/exception/project-not-found.exception';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { UpdateBoardDto } from './dto/update-board.dto';
 import { BoardNotFoundException } from './exceptions/Board-not-found.exception';
@@ -11,30 +12,34 @@ import { BoardModel } from './models/Board.model';
 export class BoardsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateBoardDto): Promise<BoardModel> {
-    const projectCount = await this.prisma.workspace.count({
-      where: {
-        id: Buffer.from(dto.workspaceId),
-      },
-    });
-
-    if (projectCount === 0) {
-      throw new ProjectNotFoundException();
-    }
-
-    const Board = await this.prisma.board.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        workspaceId: Buffer.from(dto.workspaceId),
-      },
-    });
-
+  private toBoardModel(board: Board): BoardModel {
     return {
-      ...Board,
-      id: Board.id.toString(),
-      workspaceId: Board.workspaceId.toString(),
+      ...board,
+      id: board.id.toString(),
+      workspaceId: board.workspaceId.toString(),
     };
+  }
+
+  async create(dto: CreateBoardDto): Promise<BoardModel> {
+    const workspaceId = Buffer.from(dto.workspaceId);
+
+    try {
+      const board = await this.prisma.board.create({
+        data: {
+          id: generateId(),
+          name: dto.name,
+          description: dto.description,
+          workspaceId,
+        },
+      });
+
+      return this.toBoardModel(board);
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new BoardNotFoundException();
+      }
+      throw new UnprocessableEntityException(error);
+    }
   }
 
   async findAll(
@@ -57,40 +62,32 @@ export class BoardsService {
       page,
       pageSize,
       count,
-      data: data.map((board) => ({
-        ...board,
-        id: board.id.toString(),
-        workspaceId: board.workspaceId.toString(),
-      })),
+      data: data.map(this.toBoardModel),
     };
   }
 
   async findOne(id: string): Promise<BoardModel> {
-    const Board = await this.prisma.board.findUnique({
+    const board = await this.prisma.board.findUnique({
       where: {
         id: Buffer.from(id),
       },
     });
 
-    if (!Board) {
+    if (!board) {
       throw new BoardNotFoundException();
     }
 
-    return {
-      ...Board,
-      id: Board.id.toString(),
-      workspaceId: Board.workspaceId.toString(),
-    };
+    return this.toBoardModel(board);
   }
 
   async update(id: string, dto: UpdateBoardDto): Promise<BoardModel> {
-    const Board = await this.prisma.board.findUnique({
+    const board = await this.prisma.board.findUnique({
       where: {
         id: Buffer.from(id),
       },
     });
 
-    if (!Board) {
+    if (!board) {
       throw new BoardNotFoundException();
     }
 
@@ -107,21 +104,17 @@ export class BoardsService {
             : undefined,
         },
       })
-      .then((board) => ({
-        ...board,
-        id: board.id.toString(),
-        workspaceId: board.workspaceId.toString(),
-      }));
+      .then((board) => this.toBoardModel(board));
   }
 
   async remove(id: string): Promise<void> {
-    const Board = await this.prisma.board.delete({
+    const board = await this.prisma.board.delete({
       where: {
         id: Buffer.from(id),
       },
     });
 
-    if (!Board) {
+    if (!board) {
       throw new BoardNotFoundException();
     }
   }

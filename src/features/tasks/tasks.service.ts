@@ -3,6 +3,7 @@ import { Prisma, TaskStatus } from '@prisma/client';
 import { PageResponse } from '../../core/model/page-response.model';
 import { generateId } from '../../core/utils/uuid.util';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ColumnNotFoundException } from '../kanban/exceptions/column-not-found.exception';
 import { ProjectNotFoundException } from '../projects/exception/project-not-found.exception';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskQueryParams } from './dto/task-query-params.dto';
@@ -44,9 +45,8 @@ export class TasksService {
         },
       });
 
-      // TODO: Replace this with ColumnNotFoundException
       if (columnCount === 0) {
-        throw new TaskNotFoundException();
+        throw new ColumnNotFoundException();
       }
     }
 

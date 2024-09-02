@@ -1,8 +1,15 @@
-import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateBoardDto {
   @IsString()
-  @MaxLength(128)
+  @MinLength(1)
+  @MaxLength(32)
   name: string;
 
   @IsUUID()

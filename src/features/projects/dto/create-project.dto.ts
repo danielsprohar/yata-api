@@ -12,7 +12,7 @@ export class CreateProjectDto {
   workspaceId: string;
 
   @IsString()
-  @MaxLength(255)
+  @MaxLength(32)
   name: string;
 
   @IsOptional()

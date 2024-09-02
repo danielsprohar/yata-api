@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { Column } from '@prisma/client';
 import { PageResponse } from '../../core/model/page-response.model';
+import { generateId } from '../../core/utils/uuid.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectNotFoundException } from '../projects/exception/project-not-found.exception';
 import { CreateColumnDto } from './dto/create-column.dto';
@@ -11,31 +13,34 @@ import { ColumnModel } from './models/column.model';
 export class ColumnsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateColumnDto): Promise<ColumnModel> {
-    const projectCount = await this.prisma.board.count({
-      where: {
-        id: Buffer.from(dto.boardId),
-      },
-    });
-
-    if (projectCount === 0) {
-      throw new ProjectNotFoundException();
-    }
-
-    const column = await this.prisma.column.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        position: dto.position,
-        boardId: Buffer.from(dto.boardId),
-      },
-    });
-
+  private toColumnModel(column: Column): ColumnModel {
     return {
       ...column,
       id: column.id.toString(),
       boardId: column.boardId.toString(),
     };
+  }
+
+  async create(dto: CreateColumnDto): Promise<ColumnModel> {
+    const boardId = Buffer.from(dto.boardId);
+    try {
+      const column = await this.prisma.column.create({
+        data: {
+          id: generateId(),
+          name: dto.name,
+          description: dto.description,
+          position: dto.position,
+          boardId,
+        },
+      });
+
+      return this.toColumnModel(column);
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new ProjectNotFoundException();
+      }
+      throw new UnprocessableEntityException(error);
+    }
   }
 
   async findAll(
@@ -58,11 +63,7 @@ export class ColumnsService {
       page,
       pageSize,
       count,
-      data: data.map((column) => ({
-        ...column,
-        id: column.id.toString(),
-        boardId: column.boardId.toString(),
-      })),
+      data: data.map(this.toColumnModel),
     };
   }
 
@@ -77,26 +78,12 @@ export class ColumnsService {
       throw new ColumnNotFoundException();
     }
 
-    return {
-      ...column,
-      id: column.id.toString(),
-      boardId: column.boardId.toString(),
-    };
+    return this.toColumnModel(column);
   }
 
   async update(id: string, dto: UpdateColumnDto): Promise<ColumnModel> {
-    const column = await this.prisma.column.findUnique({
-      where: {
-        id: Buffer.from(id),
-      },
-    });
-
-    if (!column) {
-      throw new ColumnNotFoundException();
-    }
-
-    return this.prisma.column
-      .update({
+    try {
+      const column = await this.prisma.column.update({
         where: {
           id: Buffer.from(id),
         },
@@ -106,12 +93,15 @@ export class ColumnsService {
           position: dto.position,
           boardId: dto.boardId ? Buffer.from(dto.boardId) : undefined,
         },
-      })
-      .then((updatedColumn) => ({
-        ...updatedColumn,
-        id: updatedColumn.id.toString(),
-        boardId: updatedColumn.boardId.toString(),
-      }));
+      });
+
+      return this.toColumnModel(column);
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new ColumnNotFoundException();
+      }
+      throw new UnprocessableEntityException(error);
+    }
   }
 
   async remove(id: string): Promise<void> {

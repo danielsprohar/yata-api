@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   await prisma.task.deleteMany();
   await prisma.project.deleteMany();
+  await prisma.board.deleteMany();
   await prisma.workspace.deleteMany();
 
   const workspace = await prisma.workspace.create({

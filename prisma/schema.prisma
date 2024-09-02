@@ -12,7 +12,7 @@ datasource db {
 
 model Calendar {
   id          Bytes           @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  name        String          @db.VarChar(255)
+  name        String          @db.VarChar(32)
   description String?         @db.Text
   public      Boolean         @default(false)
   ownerId     String?         @map("owner_id")
@@ -42,7 +42,7 @@ model CalendarEvent {
 
 model Workspace {
   id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  name        String   @db.VarChar(255)
+  name        String   @db.VarChar(32)
   description String?  @db.Text
   public      Boolean  @default(false)
   ownerId     String?  @map("owner_id")
@@ -58,7 +58,7 @@ model Workspace {
 
 model Project {
   id          Bytes         @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  name        String        @db.VarChar(255)
+  name        String        @db.VarChar(32)
   description String?       @db.Text
   status      ProjectStatus @default(NOT_STARTED)
   createdAt   DateTime      @default(now()) @map("created_at")
@@ -74,7 +74,7 @@ model Project {
 
 model Board {
   id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  name        String   @db.VarChar(128)
+  name        String   @db.VarChar(32)
   description String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -89,13 +89,13 @@ model Board {
 
 model Column {
   id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
-  name        String   @db.VarChar(128)
+  name        String   @db.VarChar(32)
   description String?  @db.Text
   position    Int      @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  Board   Board @relation(fields: [boardId], references: [id])
+  Board   Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
   boardId Bytes @map("board_id") @db.Binary(36)
 
   tasks Task[]
@@ -111,7 +111,7 @@ model Task {
   dueDate     DateTime?  @map("due_date")
   priority    Priority   @default(MEDIUM)
   allDay      Boolean    @default(true) @map("all_day")
-  startedAt  DateTime?  @map("started_at")
+  startedAt   DateTime?  @map("started_at")
   completedAt DateTime?  @map("completed_at")
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
@@ -121,10 +121,10 @@ model Task {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId Bytes     @map("workspace_id") @db.Binary(36)
 
-  Project   Project? @relation(fields: [projectId], references: [id])
+  Project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId Bytes?   @map("project_id") @db.Binary(36)
 
-  Column   Column? @relation(fields: [columnId], references: [id])
+  Column   Column? @relation(fields: [columnId], references: [id], onDelete: SetNull)
   columnId Bytes?  @map("column_id") @db.Binary(36)
 
   parent   Task?  @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)

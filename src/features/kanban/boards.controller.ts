@@ -10,9 +10,11 @@ import {
   Patch,
   Post,
   Query,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import { FindOneParam } from '../../core/dto/find-one-param';
+import { WorkspaceNotFoundException } from '../workspaces/exception/workspace-not-found.exception';
 import { BoardsService } from './boards.service';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { UpdateBoardDto } from './dto/update-board.dto';
@@ -23,8 +25,16 @@ export class BoardsController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  create(@Body() dto: CreateBoardDto) {
-    return this.boardsService.create(dto);
+  async create(@Body() dto: CreateBoardDto) {
+    try {
+      return await this.boardsService.create(dto);
+    } catch (e) {
+      console.error(e);
+      if (e instanceof WorkspaceNotFoundException) {
+        throw e;
+      }
+      throw new UnprocessableEntityException(e.message);
+    }
   }
 
   @Get()
