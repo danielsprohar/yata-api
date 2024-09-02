@@ -70,6 +70,27 @@ async function main() {
       id: Buffer.from(uuidv4()),
       name: 'My First Kanban',
       workspaceId: workspace.id,
+      columns: {
+        createMany: {
+          data: [
+            {
+              id: Buffer.from(uuidv4()),
+              name: 'To Do',
+              position: 0,
+            },
+            {
+              id: Buffer.from(uuidv4()),
+              name: 'In Progress',
+              position: 1,
+            },
+            {
+              id: Buffer.from(uuidv4()),
+              name: 'Done',
+              position: 2,
+            },
+          ],
+        },
+      },
     },
   });
 }
