@@ -5,8 +5,8 @@ import { generateId } from '../../core/utils/uuid.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { UpdateBoardDto } from './dto/update-board.dto';
-import { BoardNotFoundException } from './exceptions/Board-not-found.exception';
-import { BoardModel } from './models/Board.model';
+import { BoardNotFoundException } from './exceptions/board-not-found.exception';
+import { BoardModel } from './models/board.model';
 
 @Injectable()
 export class BoardsService {
