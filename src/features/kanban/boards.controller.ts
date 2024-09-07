@@ -10,16 +10,28 @@ import {
   Patch,
   Post,
   Query,
+  UnauthorizedException,
   UnprocessableEntityException,
+  UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { isUUID } from 'class-validator';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { FindOneParam } from '../../core/dto/find-one-param';
 import { WorkspaceNotFoundException } from '../workspaces/exception/workspace-not-found.exception';
 import { BoardsService } from './boards.service';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { UpdateBoardDto } from './dto/update-board.dto';
 
+@ApiBearerAuth()
+@ApiTags('boards')
+@ApiUnauthorizedResponse({ type: UnauthorizedException })
 @Controller('boards')
+@UseGuards(JwtAuthGuard)
 export class BoardsController {
   constructor(private readonly boardsService: BoardsService) {}
 
