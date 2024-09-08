@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE `Calendar` (
-    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
-    `name` VARCHAR(255) NOT NULL,
+    `id` BINARY(36) NOT NULL,
+    `name` VARCHAR(32) NOT NULL,
     `description` TEXT NULL,
     `public` BOOLEAN NOT NULL DEFAULT false,
     `owner_id` VARCHAR(191) NULL,
@@ -14,7 +14,7 @@ CREATE TABLE `Calendar` (
 
 -- CreateTable
 CREATE TABLE `CalendarEvent` (
-    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
+    `id` BINARY(36) NOT NULL,
     `name` VARCHAR(255) NOT NULL,
     `description` TEXT NULL,
     `start_date` DATETIME(3) NOT NULL,
@@ -31,8 +31,8 @@ CREATE TABLE `CalendarEvent` (
 
 -- CreateTable
 CREATE TABLE `Workspace` (
-    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
-    `name` VARCHAR(255) NOT NULL,
+    `id` BINARY(36) NOT NULL,
+    `name` VARCHAR(32) NOT NULL,
     `description` TEXT NULL,
     `public` BOOLEAN NOT NULL DEFAULT false,
     `owner_id` VARCHAR(191) NULL,
@@ -45,7 +45,7 @@ CREATE TABLE `Workspace` (
 
 -- CreateTable
 CREATE TABLE `Project` (
-    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
+    `id` BINARY(36) NOT NULL,
     `name` VARCHAR(32) NOT NULL,
     `description` TEXT NULL,
     `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'CANCELLED', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
@@ -59,7 +59,7 @@ CREATE TABLE `Project` (
 
 -- CreateTable
 CREATE TABLE `Board` (
-    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
+    `id` BINARY(36) NOT NULL,
     `name` VARCHAR(32) NOT NULL,
     `description` TEXT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -72,8 +72,8 @@ CREATE TABLE `Board` (
 
 -- CreateTable
 CREATE TABLE `Column` (
-    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
-    `name` VARCHAR(128) NOT NULL,
+    `id` BINARY(36) NOT NULL,
+    `name` VARCHAR(32) NOT NULL,
     `description` TEXT NULL,
     `position` INTEGER NOT NULL DEFAULT 0,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -86,7 +86,7 @@ CREATE TABLE `Column` (
 
 -- CreateTable
 CREATE TABLE `Task` (
-    `id` BINARY(36) NOT NULL DEFAULT (uuid_to_bin(uuid())),
+    `id` BINARY(36) NOT NULL,
     `name` VARCHAR(255) NOT NULL,
     `description` TEXT NULL,
     `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
@@ -100,6 +100,7 @@ CREATE TABLE `Task` (
     `rrule` TEXT NULL,
     `workspace_id` BINARY(36) NOT NULL,
     `project_id` BINARY(36) NULL,
+    `board_id` BINARY(36) NULL,
     `column_id` BINARY(36) NULL,
     `parent_id` BINARY(36) NULL,
 
@@ -124,6 +125,9 @@ ALTER TABLE `Task` ADD CONSTRAINT `Task_workspace_id_fkey` FOREIGN KEY (`workspa
 
 -- AddForeignKey
 ALTER TABLE `Task` ADD CONSTRAINT `Task_project_id_fkey` FOREIGN KEY (`project_id`) REFERENCES `Project`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Task` ADD CONSTRAINT `Task_board_id_fkey` FOREIGN KEY (`board_id`) REFERENCES `Board`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Task` ADD CONSTRAINT `Task_column_id_fkey` FOREIGN KEY (`column_id`) REFERENCES `Column`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

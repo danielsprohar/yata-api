@@ -6,13 +6,13 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model Calendar {
-  id          Bytes           @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  id          Bytes           @id @db.Binary(36)
   name        String          @db.VarChar(32)
   description String?         @db.Text
   public      Boolean         @default(false)
@@ -25,7 +25,7 @@ model Calendar {
 }
 
 model CalendarEvent {
-  id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  id          Bytes    @id @db.Binary(36)
   name        String   @db.VarChar(255)
   description String?  @db.Text
   start       DateTime @map("start_date")
@@ -42,7 +42,7 @@ model CalendarEvent {
 }
 
 model Workspace {
-  id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  id          Bytes    @id @db.Binary(36)
   name        String   @db.VarChar(32)
   description String?  @db.Text
   public      Boolean  @default(false)
@@ -58,7 +58,7 @@ model Workspace {
 }
 
 model Project {
-  id          Bytes         @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  id          Bytes         @id @db.Binary(36)
   name        String        @db.VarChar(32)
   description String?       @db.Text
   status      ProjectStatus @default(NOT_STARTED)
@@ -74,7 +74,7 @@ model Project {
 }
 
 model Board {
-  id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  id          Bytes    @id @db.Binary(36)
   name        String   @db.VarChar(32)
   description String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
@@ -84,12 +84,13 @@ model Board {
   workspaceId Bytes     @map("workspace_id") @db.Binary(36)
 
   columns Column[]
+  tasks   Task[]
 
   @@index([name])
 }
 
 model Column {
-  id          Bytes    @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  id          Bytes    @id @db.Binary(36)
   name        String   @db.VarChar(32)
   description String?  @db.Text
   position    Int      @default(0)
@@ -105,7 +106,7 @@ model Column {
 }
 
 model Task {
-  id          Bytes      @id @default(dbgenerated("(uuid_to_bin(uuid()))")) @db.Binary(36)
+  id          Bytes      @id @db.Binary(36)
   name        String     @db.VarChar(255)
   description String?    @db.Text
   status      TaskStatus @default(NOT_STARTED)
@@ -124,6 +125,9 @@ model Task {
 
   Project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId Bytes?   @map("project_id") @db.Binary(36)
+
+  Board   Board? @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId Bytes? @map("board_id") @db.Binary(36)
 
   Column   Column? @relation(fields: [columnId], references: [id], onDelete: SetNull)
   columnId Bytes?  @map("column_id") @db.Binary(36)
