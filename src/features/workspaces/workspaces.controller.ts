@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -27,11 +28,18 @@ export class WorkspacesController {
   }
 
   @Get()
-  findAll(
-    @Query('page') page: string = '0',
-    @Query('pageSize') pageSize: string = '10',
-  ) {
-    return this.workspacesService.findAll(+page, +pageSize);
+  findAll(@Query('page') page: string, @Query('pageSize') pageSize: string) {
+    if (page && Number.isNaN(Number.parseInt(page))) {
+      throw new BadRequestException('Invalid page value');
+    }
+    if (pageSize && Number.isNaN(Number.parseInt(pageSize))) {
+      throw new BadRequestException('Invalid pageSize value');
+    }
+
+    return this.workspacesService.findAll(
+      page ? Math.max(0, parseInt(page, 10)) : 0,
+      pageSize ? Math.max(1, parseInt(pageSize, 10)) : 10,
+    );
   }
 
   @Get(':id')
