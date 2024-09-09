@@ -6,6 +6,7 @@ import { ThrottlerGuard } from '@nestjs/throttler/dist/throttler.guard';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { ProjectsModule } from './features/projects/projects.module';
+import { SectionsModule } from './features/sections/sections.module';
 import { TasksModule } from './features/tasks/tasks.module';
 import { WorkspacesModule } from './features/workspaces/workspaces.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -24,6 +25,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     PrismaModule,
     ProjectsModule,
+    SectionsModule,
     TasksModule,
     WorkspacesModule,
   ],
