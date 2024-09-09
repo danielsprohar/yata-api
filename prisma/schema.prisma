@@ -94,7 +94,7 @@ model Task {
   description String?    @db.Text
   status      TaskStatus @default(NOT_STARTED)
   dueDate     DateTime?  @map("due_date")
-  priority    Priority   @default(MEDIUM)
+  priority    Priority   @default(NONE)
   allDay      Boolean    @default(true) @map("all_day")
   startedAt   DateTime?  @map("started_at")
   completedAt DateTime?  @map("completed_at")

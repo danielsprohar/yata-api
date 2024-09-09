@@ -1,11 +1,11 @@
-import { IsNumberString, IsString, IsUUID, MaxLength } from "class-validator";
+import { IsNumber, IsString, IsUUID, MaxLength } from "class-validator";
 
 export class CreateSectionDto {
   @IsString()
   @MaxLength(32)
   name: string;
 
-  @IsNumberString()
+  @IsNumber()
   position: number;
 
   @IsUUID()
