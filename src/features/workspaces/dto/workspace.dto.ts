@@ -1,4 +1,4 @@
-interface WorkspaceModel {
+export interface WorkspaceDto {
   id: string;
   name: string;
   description: string | null;

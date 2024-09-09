@@ -1,5 +1,6 @@
-import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
+import { PrismaClient } from "@prisma/client";
+import { v4 as uuidv4 } from "uuid";
+import { uuidToBuffer } from "../src/core/utils/uuid.util";
 
 const prisma = new PrismaClient();
 
@@ -10,21 +11,21 @@ async function main() {
 
   const workspace = await prisma.workspace.create({
     data: {
-      id: Buffer.from(uuidv4()),
-      name: 'YATA',
+      id: uuidToBuffer(uuidv4()),
+      name: "YATA",
     },
   });
 
   await prisma.project.createMany({
     data: [
       {
-        id: Buffer.from(uuidv4()),
-        name: 'Frontend',
+        id: uuidToBuffer(uuidv4()),
+        name: "Frontend",
         workspaceId: workspace.id,
       },
       {
-        id: Buffer.from(uuidv4()),
-        name: 'Backend',
+        id: uuidToBuffer(uuidv4()),
+        name: "Backend",
         workspaceId: workspace.id,
       },
     ],
@@ -36,38 +37,38 @@ async function main() {
     await prisma.task.createMany({
       data: [
         {
-          id: Buffer.from(uuidv4()),
-          name: 'Create a new workspace',
+          id: uuidToBuffer(uuidv4()),
+          name: "Create a new workspace",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: Buffer.from(uuidv4()),
-          name: 'Create a new project',
+          id: uuidToBuffer(uuidv4()),
+          name: "Create a new project",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: Buffer.from(uuidv4()),
-          name: 'Create a new task',
+          id: uuidToBuffer(uuidv4()),
+          name: "Create a new task",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: Buffer.from(uuidv4()),
-          name: 'Create a new calendar',
+          id: uuidToBuffer(uuidv4()),
+          name: "Create a new calendar",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: Buffer.from(uuidv4()),
-          name: 'Create a board',
+          id: uuidToBuffer(uuidv4()),
+          name: "Create a board",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: Buffer.from(uuidv4()),
-          name: 'Create a board columns',
+          id: uuidToBuffer(uuidv4()),
+          name: "Create a board columns",
           workspaceId: workspace.id,
           projectId: project.id,
         },
