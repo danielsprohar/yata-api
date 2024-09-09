@@ -48,10 +48,6 @@ export class ProjectsService {
     pageSize: number,
     workspaceId: string,
   ): Promise<PageResponse<ProjectModel>> {
-    console.log(
-      "[ProjectsService::findAll] workspaceId.length ",
-      uuidToBuffer(workspaceId).length,
-    );
     const [data, count] = await Promise.all([
       this.prisma.project.findMany({
         skip: page * pageSize,
