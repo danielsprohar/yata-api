@@ -1,25 +1,25 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-import { Prisma, TaskStatus } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
-import { PageResponse } from '../../core/model/page-response.model';
-import { generateId } from '../../core/utils/uuid.util';
-import { PrismaService } from '../../prisma/prisma.service';
-import { ProjectNotFoundException } from '../projects/exception/project-not-found.exception';
-import { CreateTaskDto } from './dto/create-task.dto';
-import { TaskQueryParams } from './dto/task-query-params.dto';
-import { UpdateTaskDto } from './dto/update-task.dto';
-import { TaskNotFoundException } from './exception/task-not-found.expection';
-import { taskModel, TaskModel } from './model/task.model';
+import { Injectable, UnprocessableEntityException } from "@nestjs/common";
+import { Prisma, TaskStatus } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { PageResponse } from "../../core/model/page-response.model";
+import { generateId, uuidToBuffer } from "../../core/utils/uuid.util";
+import { PrismaService } from "../../prisma/prisma.service";
+import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
+import { CreateTaskDto } from "./dto/create-task.dto";
+import { TaskQueryParams } from "./dto/task-query-params.dto";
+import { UpdateTaskDto } from "./dto/update-task.dto";
+import { TaskNotFoundException } from "./exception/task-not-found.expection";
+import { toTaskDto, TaskDto } from "./dto/task.dto";
 
 @Injectable()
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateTaskDto): Promise<TaskModel> {
+  async create(dto: CreateTaskDto): Promise<TaskDto> {
     if (dto.parentId) {
       const parentTaskCount = await this.prisma.task.count({
         where: {
-          id: Buffer.from(dto.parentId),
+          id: uuidToBuffer(dto.parentId),
         },
       });
 
@@ -37,18 +37,18 @@ export class TasksService {
           status: dto.status,
           dueDate: dto.dueDate,
           priority: dto.priority,
-          workspaceId: Buffer.from(dto.workspaceId),
-          projectId: Buffer.from(dto.projectId),
-          parentId: dto.parentId ? Buffer.from(dto.parentId) : undefined,
+          workspaceId: uuidToBuffer(dto.workspaceId),
+          projectId: uuidToBuffer(dto.projectId),
+          parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
         },
       });
 
-      return taskModel(task);
+      return toTaskDto(task);
     } catch (e) {
       console.error(e);
       // @see https://www.prisma.io/docs/orm/reference/error-reference#p2003
       if (e instanceof PrismaClientKnownRequestError) {
-        if (e.code === 'P2003') {
+        if (e.code === "P2003") {
           throw new ProjectNotFoundException();
         }
       }
@@ -57,7 +57,7 @@ export class TasksService {
     }
   }
 
-  async findAll(params: TaskQueryParams): Promise<PageResponse<TaskModel>> {
+  async findAll(params: TaskQueryParams): Promise<PageResponse<TaskDto>> {
     const {
       status,
       from,
@@ -74,38 +74,38 @@ export class TasksService {
 
     const taskFilter: Prisma.TaskWhereInput = {};
     if (from && to) {
-      taskFilter['AND'] = {
+      taskFilter["AND"] = {
         dueDate: {
           gte: from,
           lte: to,
         },
       };
     } else if (from) {
-      taskFilter['dueDate'] = {
+      taskFilter["dueDate"] = {
         gte: from,
       };
     } else if (to) {
-      taskFilter['dueDate'] = {
+      taskFilter["dueDate"] = {
         lte: to,
       };
     }
 
     if (projectId) {
-      taskFilter['projectId'] = Buffer.from(projectId);
+      taskFilter["projectId"] = uuidToBuffer(projectId);
     }
     if (workspaceId) {
-      taskFilter['project'] = {
-        workspaceId: Buffer.from(workspaceId),
+      taskFilter["project"] = {
+        workspaceId: uuidToBuffer(workspaceId),
       };
     }
     if (parentId) {
-      taskFilter['parentId'] = Buffer.from(parentId);
+      taskFilter["parentId"] = uuidToBuffer(parentId);
     }
     if (priority) {
-      taskFilter['priority'] = priority;
+      taskFilter["priority"] = priority;
     }
     if (status) {
-      taskFilter['status'] = status;
+      taskFilter["status"] = status;
     }
 
     const [data, count] = await Promise.all([
@@ -114,7 +114,7 @@ export class TasksService {
         take: Math.min(+pageSize, 50),
         where: taskFilter,
         orderBy: {
-          createdAt: dir === 'asc' ? 'asc' : 'desc',
+          createdAt: dir === "asc" ? "asc" : "desc",
         },
       }),
       this.prisma.task.count({
@@ -126,14 +126,14 @@ export class TasksService {
       page,
       pageSize,
       count,
-      data: data.map((task) => taskModel(task)),
+      data: data.map((task) => toTaskDto(task)),
     };
   }
 
-  async findOne(id: string): Promise<TaskModel> {
+  async findOne(id: string): Promise<TaskDto> {
     const task = await this.prisma.task.findUnique({
       where: {
-        id: Buffer.from(id),
+        id: uuidToBuffer(id),
       },
       include: {
         subtasks: true,
@@ -145,15 +145,15 @@ export class TasksService {
     }
 
     return {
-      ...taskModel(task),
-      subTasks: task.subtasks.map((subTask) => taskModel(subTask)),
+      ...toTaskDto(task),
+      subTasks: task.subtasks.map((subTask) => toTaskDto(subTask)),
     };
   }
 
-  async update(id: string, dto: UpdateTaskDto): Promise<TaskModel> {
+  async update(id: string, dto: UpdateTaskDto): Promise<TaskDto> {
     const task = await this.prisma.task.findUnique({
       where: {
-        id: Buffer.from(id),
+        id: uuidToBuffer(id),
       },
     });
 
@@ -164,7 +164,7 @@ export class TasksService {
     return this.prisma.task
       .update({
         where: {
-          id: Buffer.from(id),
+          id: uuidToBuffer(id),
         },
         data: {
           name: dto.name,
@@ -173,23 +173,23 @@ export class TasksService {
           dueDate: dto.dueDate,
           priority: dto.priority,
           workspaceId: dto.workspaceId
-            ? Buffer.from(dto.workspaceId)
+            ? uuidToBuffer(dto.workspaceId)
             : undefined,
-          projectId: dto.projectId ? Buffer.from(dto.projectId) : undefined,
-          parentId: dto.parentId ? Buffer.from(dto.parentId) : undefined,
+          projectId: dto.projectId ? uuidToBuffer(dto.projectId) : undefined,
+          parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
           startedAt:
             dto.status === TaskStatus.IN_PROGRESS ? new Date() : undefined,
           completedAt:
             dto.status === TaskStatus.COMPLETED ? new Date() : undefined,
         },
       })
-      .then((updatedTask) => taskModel(updatedTask));
+      .then((updatedTask) => toTaskDto(updatedTask));
   }
 
   async remove(id: string): Promise<void> {
     const task = await this.prisma.task.delete({
       where: {
-        id: Buffer.from(id),
+        id: uuidToBuffer(id),
       },
     });
 

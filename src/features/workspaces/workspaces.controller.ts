@@ -5,20 +5,21 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   Patch,
   Post,
   Query,
   UnprocessableEntityException,
-} from '@nestjs/common';
-import { FindOneParam } from '../../core/dto/find-one-param';
-import { CreateWorkspaceDto } from './dto/create-workspace.dto';
-import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
-import { WorkspaceNotFoundException } from './exception/workspace-not-found.exception';
-import { WorkspacesService } from './workspaces.service';
+} from "@nestjs/common";
+import { FindOneParam } from "../../core/dto/find-one-param";
+import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
+import { UpdateWorkspaceDto } from "./dto/update-workspace.dto";
+import { WorkspaceNotFoundException } from "./exception/workspace-not-found.exception";
+import { WorkspacesService } from "./workspaces.service";
 
-@Controller('workspaces')
+@Controller("workspaces")
 export class WorkspacesController {
   constructor(private readonly workspacesService: WorkspacesService) {}
 
@@ -28,12 +29,12 @@ export class WorkspacesController {
   }
 
   @Get()
-  findAll(@Query('page') page: string, @Query('pageSize') pageSize: string) {
+  findAll(@Query("page") page: string, @Query("pageSize") pageSize: string) {
     if (page && Number.isNaN(Number.parseInt(page))) {
-      throw new BadRequestException('Invalid page value');
+      throw new BadRequestException("Invalid page value");
     }
     if (pageSize && Number.isNaN(Number.parseInt(pageSize))) {
-      throw new BadRequestException('Invalid pageSize value');
+      throw new BadRequestException("Invalid pageSize value");
     }
 
     return this.workspacesService.findAll(
@@ -42,7 +43,7 @@ export class WorkspacesController {
     );
   }
 
-  @Get(':id')
+  @Get(":id")
   async findOne(@Param() params: FindOneParam) {
     try {
       return await this.workspacesService.findOne(params.id);
@@ -55,7 +56,7 @@ export class WorkspacesController {
     }
   }
 
-  @Patch(':id')
+  @Patch(":id")
   async update(
     @Param() params: FindOneParam,
     @Body() updateWorkspaceDto: UpdateWorkspaceDto,
@@ -71,8 +72,8 @@ export class WorkspacesController {
     }
   }
 
-  @Delete(':id')
-  @HttpCode(204)
+  @Delete(":id")
+  @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param() params: FindOneParam) {
     try {
       await this.workspacesService.remove(params.id);
