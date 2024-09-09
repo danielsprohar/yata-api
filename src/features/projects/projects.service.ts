@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PageResponse } from "../../core/model/page-response.model";
 import {
   bufferToUuid,
-  generateId,
+  generatePrimaryKey,
   uuidToBuffer,
 } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -29,7 +29,7 @@ export class ProjectsService {
 
     const project = await this.prisma.project.create({
       data: {
-        id: generateId(),
+        id: generatePrimaryKey(),
         name: createProjectDto.name,
         description: createProjectDto.description,
         status: createProjectDto.status ?? "NOT_STARTED",
@@ -46,19 +46,23 @@ export class ProjectsService {
   async findAll(
     page: number,
     pageSize: number,
-    workspaceId?: string,
+    workspaceId: string,
   ): Promise<PageResponse<ProjectModel>> {
+    console.log(
+      "[ProjectsService::findAll] workspaceId.length ",
+      uuidToBuffer(workspaceId).length,
+    );
     const [data, count] = await Promise.all([
       this.prisma.project.findMany({
         skip: page * pageSize,
-        take: Math.min(pageSize, 50),
+        take: pageSize,
         where: {
-          workspaceId: workspaceId ? uuidToBuffer(workspaceId) : undefined,
+          workspaceId: uuidToBuffer(workspaceId),
         },
       }),
       this.prisma.project.count({
         where: {
-          workspaceId: workspaceId ? uuidToBuffer(workspaceId) : undefined,
+          workspaceId: uuidToBuffer(workspaceId),
         },
       }),
     ]);

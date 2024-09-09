@@ -29,7 +29,7 @@ export class WorkspacesController {
   }
 
   @Get()
-  findAll(@Query("page") page: string, @Query("pageSize") pageSize: string) {
+  async findAll(@Query("page") page: string, @Query("pageSize") pageSize: string) {
     if (page && Number.isNaN(Number.parseInt(page))) {
       throw new BadRequestException("Invalid page value");
     }
@@ -37,10 +37,13 @@ export class WorkspacesController {
       throw new BadRequestException("Invalid pageSize value");
     }
 
-    return this.workspacesService.findAll(
+    const response = await this.workspacesService.findAll(
       page ? Math.max(0, parseInt(page, 10)) : 0,
       pageSize ? Math.max(1, parseInt(pageSize, 10)) : 10,
     );
+
+    console.log(response.data);
+    return response
   }
 
   @Get(":id")

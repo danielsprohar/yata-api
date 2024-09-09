@@ -1,4 +1,4 @@
-import { Priority, TaskStatus } from '@prisma/client';
+import { Priority, TaskStatus } from "@prisma/client";
 import {
   IsEnum,
   IsISO8601,
@@ -6,14 +6,14 @@ import {
   IsString,
   IsUUID,
   MaxLength,
-} from 'class-validator';
+} from "class-validator";
 
 export class CreateTaskDto {
   @IsUUID()
   workspaceId: string;
 
   @IsUUID()
-  projectId?: string;
+  projectId: string;
 
   @IsOptional()
   @IsUUID()

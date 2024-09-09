@@ -9,15 +9,15 @@ import {
   Post,
   Query,
   UnprocessableEntityException,
-} from '@nestjs/common';
-import { FindOneParam } from '../../core/dto/find-one-param';
-import { CreateTaskDto } from './dto/create-task.dto';
-import { TaskQueryParams } from './dto/task-query-params.dto';
-import { UpdateTaskDto } from './dto/update-task.dto';
-import { TaskNotFoundException } from './exception/task-not-found.expection';
-import { TasksService } from './tasks.service';
+} from "@nestjs/common";
+import { FindOneParam } from "../../core/dto/find-one-param";
+import { CreateTaskDto } from "./dto/create-task.dto";
+import { TaskQueryParams } from "./dto/task-query-params.dto";
+import { UpdateTaskDto } from "./dto/update-task.dto";
+import { TaskNotFoundException } from "./exception/task-not-found.expection";
+import { TasksService } from "./tasks.service";
 
-@Controller('tasks')
+@Controller("tasks")
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
@@ -36,10 +36,15 @@ export class TasksController {
 
   @Get()
   findAll(@Query() queryParams: TaskQueryParams) {
-    return this.tasksService.findAll(queryParams);
+    const page = Math.max(0, queryParams.page ? +queryParams.page : 0);
+    const pageSize = Math.min(
+      50,
+      queryParams.pageSize ? +queryParams.pageSize : 50,
+    );
+    return this.tasksService.findAll(page, pageSize, queryParams);
   }
 
-  @Get(':id')
+  @Get(":id")
   async findOne(@Param() params: FindOneParam) {
     try {
       return await this.tasksService.findOne(params.id);
@@ -52,7 +57,7 @@ export class TasksController {
     }
   }
 
-  @Patch(':id')
+  @Patch(":id")
   async update(
     @Param() params: FindOneParam,
     @Body() updateTaskDto: UpdateTaskDto,
@@ -68,7 +73,7 @@ export class TasksController {
     }
   }
 
-  @Delete(':id')
+  @Delete(":id")
   async remove(@Param() params: FindOneParam) {
     try {
       await this.tasksService.remove(params.id);

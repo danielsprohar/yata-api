@@ -16,6 +16,6 @@ export function toTaskDto(task: Task): TaskDto {
     id: bufferToUuid(task.id),
     workspaceId: bufferToUuid(task.workspaceId),
     projectId: bufferToUuid(task.projectId),
-    parentId: bufferToUuid(task.parentId),
+    parentId: task.parentId ? bufferToUuid(task.parentId) : undefined,
   };
 }

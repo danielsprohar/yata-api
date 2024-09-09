@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PageResponse } from "../../core/model/page-response.model";
 import {
   bufferToUuid,
-  generateId,
+  generatePrimaryKey,
   uuidToBuffer,
 } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -27,7 +27,7 @@ export class SectionsService {
       throw new ProjectNotFoundException();
     }
 
-    const sectionId = generateId();
+    const sectionId = generatePrimaryKey();
     const section = await this.prisma.section.create({
       data: {
         id: sectionId,

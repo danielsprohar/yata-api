@@ -2,7 +2,7 @@ import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { Prisma, TaskStatus } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { PageResponse } from "../../core/model/page-response.model";
-import { generateId, uuidToBuffer } from "../../core/utils/uuid.util";
+import { generatePrimaryKey, uuidToBuffer } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
 import { CreateTaskDto } from "./dto/create-task.dto";
@@ -31,7 +31,7 @@ export class TasksService {
     try {
       const task = await this.prisma.task.create({
         data: {
-          id: generateId(),
+          id: generatePrimaryKey(),
           name: dto.name,
           description: dto.description,
           status: dto.status,
@@ -57,7 +57,11 @@ export class TasksService {
     }
   }
 
-  async findAll(params: TaskQueryParams): Promise<PageResponse<TaskDto>> {
+  async findAll(
+    page: number,
+    pageSize: number,
+    params: TaskQueryParams,
+  ): Promise<PageResponse<TaskDto>> {
     const {
       status,
       from,
@@ -68,9 +72,6 @@ export class TasksService {
       parentId,
       priority,
     } = params;
-
-    const page = parseInt(params.page, 10) || 0;
-    const pageSize = parseInt(params.pageSize, 10) || 50;
 
     const taskFilter: Prisma.TaskWhereInput = {};
     if (from && to) {

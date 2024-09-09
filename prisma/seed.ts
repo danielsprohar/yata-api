@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { v4 as uuidv4 } from "uuid";
-import { uuidToBuffer } from "../src/core/utils/uuid.util";
+import { generatePrimaryKey } from "../src/core/utils/uuid.util";
 
 const prisma = new PrismaClient();
 
@@ -11,7 +10,7 @@ async function main() {
 
   const workspace = await prisma.workspace.create({
     data: {
-      id: uuidToBuffer(uuidv4()),
+      id: generatePrimaryKey(),
       name: "YATA",
     },
   });
@@ -19,12 +18,12 @@ async function main() {
   await prisma.project.createMany({
     data: [
       {
-        id: uuidToBuffer(uuidv4()),
+        id: generatePrimaryKey(),
         name: "Frontend",
         workspaceId: workspace.id,
       },
       {
-        id: uuidToBuffer(uuidv4()),
+        id: generatePrimaryKey(),
         name: "Backend",
         workspaceId: workspace.id,
       },
@@ -37,37 +36,37 @@ async function main() {
     await prisma.task.createMany({
       data: [
         {
-          id: uuidToBuffer(uuidv4()),
+          id: generatePrimaryKey(),
           name: "Create a new workspace",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: uuidToBuffer(uuidv4()),
+          id: generatePrimaryKey(),
           name: "Create a new project",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: uuidToBuffer(uuidv4()),
+          id: generatePrimaryKey(),
           name: "Create a new task",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: uuidToBuffer(uuidv4()),
+          id: generatePrimaryKey(),
           name: "Create a new calendar",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: uuidToBuffer(uuidv4()),
+          id: generatePrimaryKey(),
           name: "Create a board",
           workspaceId: workspace.id,
           projectId: project.id,
         },
         {
-          id: uuidToBuffer(uuidv4()),
+          id: generatePrimaryKey(),
           name: "Create a board columns",
           workspaceId: workspace.id,
           projectId: project.id,

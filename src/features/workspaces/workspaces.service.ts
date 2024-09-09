@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PageResponse } from "../../core/model/page-response.model";
 import {
   bufferToUuid,
-  generateId,
+  generatePrimaryKey,
   uuidToBuffer,
 } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -16,7 +16,7 @@ export class WorkspacesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createWorkspaceDto: CreateWorkspaceDto): Promise<WorkspaceDto> {
-    const id = generateId();
+    const id = generatePrimaryKey();
     const workspace = await this.prisma.workspace.create({
       data: {
         id,
