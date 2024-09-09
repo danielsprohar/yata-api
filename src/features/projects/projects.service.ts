@@ -1,12 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { PageResponse } from '../../core/model/page-response.model';
-import { generateId } from '../../core/utils/uuid.util';
-import { PrismaService } from '../../prisma/prisma.service';
-import { WorkspaceNotFoundException } from '../workspaces/exception/workspace-not-found.exception';
-import { CreateProjectDto } from './dto/create-project.dto';
-import { UpdateProjectDto } from './dto/update-project.dto';
-import { ProjectNotFoundException } from './exception/project-not-found.exception';
-import { ProjectModel } from './model/project.model';
+import { Injectable } from "@nestjs/common";
+import { PageResponse } from "../../core/model/page-response.model";
+import {
+  bufferToUuid,
+  generateId,
+  uuidToBuffer,
+} from "../../core/utils/uuid.util";
+import { PrismaService } from "../../prisma/prisma.service";
+import { WorkspaceNotFoundException } from "../workspaces/exception/workspace-not-found.exception";
+import { CreateProjectDto } from "./dto/create-project.dto";
+import { UpdateProjectDto } from "./dto/update-project.dto";
+import { ProjectNotFoundException } from "./exception/project-not-found.exception";
+import { ProjectModel } from "./model/project.model";
 
 @Injectable()
 export class ProjectsService {
@@ -15,7 +19,7 @@ export class ProjectsService {
   async create(createProjectDto: CreateProjectDto): Promise<ProjectModel> {
     const workspaceCount = await this.prisma.workspace.count({
       where: {
-        id: Buffer.from(createProjectDto.workspaceId),
+        id: uuidToBuffer(createProjectDto.workspaceId),
       },
     });
 
@@ -28,14 +32,14 @@ export class ProjectsService {
         id: generateId(),
         name: createProjectDto.name,
         description: createProjectDto.description,
-        status: createProjectDto.status ?? 'NOT_STARTED',
-        workspaceId: Buffer.from(createProjectDto.workspaceId),
+        status: createProjectDto.status ?? "NOT_STARTED",
+        workspaceId: uuidToBuffer(createProjectDto.workspaceId),
       },
     });
     return {
       ...project,
-      id: project.id.toString(),
-      workspaceId: project.workspaceId.toString(),
+      id: bufferToUuid(project.id),
+      workspaceId: bufferToUuid(project.workspaceId),
     };
   }
 
@@ -49,10 +53,14 @@ export class ProjectsService {
         skip: page * pageSize,
         take: Math.min(pageSize, 50),
         where: {
-          workspaceId: workspaceId ? Buffer.from(workspaceId) : undefined,
+          workspaceId: workspaceId ? uuidToBuffer(workspaceId) : undefined,
         },
       }),
-      this.prisma.project.count(),
+      this.prisma.project.count({
+        where: {
+          workspaceId: workspaceId ? uuidToBuffer(workspaceId) : undefined,
+        },
+      }),
     ]);
 
     return {
@@ -61,8 +69,8 @@ export class ProjectsService {
       count,
       data: data.map((project) => ({
         ...project,
-        id: project.id.toString(),
-        workspaceId: project.workspaceId.toString(),
+        id: bufferToUuid(project.id),
+        workspaceId: bufferToUuid(project.workspaceId),
       })),
     };
   }
@@ -70,7 +78,7 @@ export class ProjectsService {
   async findOne(id: string) {
     const project = await this.prisma.project.findUnique({
       where: {
-        id: Buffer.from(id),
+        id: uuidToBuffer(id),
       },
     });
 
@@ -80,15 +88,19 @@ export class ProjectsService {
 
     return {
       ...project,
-      id: project.id.toString(),
-      workspaceId: project.workspaceId.toString(),
+      id: bufferToUuid(project.id),
+      workspaceId: bufferToUuid(project.workspaceId),
     };
   }
 
   async update(id: string, updateProjectDto: UpdateProjectDto) {
     const project = await this.prisma.project.findUnique({
       where: {
-        id: Buffer.from(id),
+        id: uuidToBuffer(id),
+      },
+      select: {
+        id: true,
+        workspaceId: true,
       },
     });
 
@@ -99,7 +111,7 @@ export class ProjectsService {
     return this.prisma.project
       .update({
         where: {
-          id: Buffer.from(id),
+          id: uuidToBuffer(id),
         },
         data: {
           name: updateProjectDto.name,
@@ -109,15 +121,15 @@ export class ProjectsService {
       })
       .then((updatedProject) => ({
         ...updatedProject,
-        id: updatedProject.id.toString(),
-        workspaceId: updatedProject.workspaceId.toString(),
+        id: bufferToUuid(project.id),
+        workspaceId: bufferToUuid(project.workspaceId),
       }));
   }
 
   async remove(id: string) {
     const project = await this.prisma.project.delete({
       where: {
-        id: Buffer.from(id),
+        id: uuidToBuffer(id),
       },
     });
 

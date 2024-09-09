@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE `Calendar` (
-    `id` BINARY(36) NOT NULL,
+    `id` BINARY(16) NOT NULL,
     `name` VARCHAR(32) NOT NULL,
     `description` TEXT NULL,
     `public` BOOLEAN NOT NULL DEFAULT false,
@@ -14,7 +14,7 @@ CREATE TABLE `Calendar` (
 
 -- CreateTable
 CREATE TABLE `CalendarEvent` (
-    `id` BINARY(36) NOT NULL,
+    `id` BINARY(16) NOT NULL,
     `name` VARCHAR(255) NOT NULL,
     `description` TEXT NULL,
     `start_date` DATETIME(3) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE `CalendarEvent` (
     `rrule` TEXT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
-    `calendar_id` BINARY(36) NOT NULL,
+    `calendar_id` BINARY(16) NOT NULL,
 
     INDEX `CalendarEvent_name_idx`(`name`),
     PRIMARY KEY (`id`)
@@ -31,7 +31,7 @@ CREATE TABLE `CalendarEvent` (
 
 -- CreateTable
 CREATE TABLE `Workspace` (
-    `id` BINARY(36) NOT NULL,
+    `id` BINARY(16) NOT NULL,
     `name` VARCHAR(32) NOT NULL,
     `description` TEXT NULL,
     `public` BOOLEAN NOT NULL DEFAULT false,
@@ -45,21 +45,32 @@ CREATE TABLE `Workspace` (
 
 -- CreateTable
 CREATE TABLE `Project` (
-    `id` BINARY(36) NOT NULL,
+    `id` BINARY(16) NOT NULL,
     `name` VARCHAR(32) NOT NULL,
     `description` TEXT NULL,
     `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'CANCELLED', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
-    `workspace_id` BINARY(36) NOT NULL,
+    `workspace_id` BINARY(16) NOT NULL,
 
     INDEX `Project_name_idx`(`name`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `Section` (
+    `id` BINARY(16) NOT NULL,
+    `name` VARCHAR(32) NOT NULL,
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updated_at` DATETIME(3) NOT NULL,
+    `project_id` BINARY(16) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `Task` (
-    `id` BINARY(36) NOT NULL,
+    `id` BINARY(16) NOT NULL,
     `name` VARCHAR(255) NOT NULL,
     `description` TEXT NULL,
     `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
@@ -71,9 +82,10 @@ CREATE TABLE `Task` (
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
     `rrule` TEXT NULL,
-    `workspace_id` BINARY(36) NOT NULL,
-    `project_id` BINARY(36) NOT NULL,
-    `parent_id` BINARY(36) NULL,
+    `workspace_id` BINARY(16) NOT NULL,
+    `project_id` BINARY(16) NOT NULL,
+    `parent_id` BINARY(16) NULL,
+    `sectionId` BINARY(16) NULL,
 
     INDEX `Task_name_idx`(`name`),
     PRIMARY KEY (`id`)
@@ -86,6 +98,9 @@ ALTER TABLE `CalendarEvent` ADD CONSTRAINT `CalendarEvent_calendar_id_fkey` FORE
 ALTER TABLE `Project` ADD CONSTRAINT `Project_workspace_id_fkey` FOREIGN KEY (`workspace_id`) REFERENCES `Workspace`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `Section` ADD CONSTRAINT `Section_project_id_fkey` FOREIGN KEY (`project_id`) REFERENCES `Project`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `Task` ADD CONSTRAINT `Task_workspace_id_fkey` FOREIGN KEY (`workspace_id`) REFERENCES `Workspace`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -93,3 +108,6 @@ ALTER TABLE `Task` ADD CONSTRAINT `Task_project_id_fkey` FOREIGN KEY (`project_i
 
 -- AddForeignKey
 ALTER TABLE `Task` ADD CONSTRAINT `Task_parent_id_fkey` FOREIGN KEY (`parent_id`) REFERENCES `Task`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Task` ADD CONSTRAINT `Task_sectionId_fkey` FOREIGN KEY (`sectionId`) REFERENCES `Section`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

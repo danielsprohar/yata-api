@@ -12,7 +12,7 @@ datasource db {
 }
 
 model Calendar {
-  id          Bytes           @id @db.Binary(36)
+  id          Bytes           @id @db.Binary(16)
   name        String          @db.VarChar(32)
   description String?         @db.Text
   public      Boolean         @default(false)
@@ -25,7 +25,7 @@ model Calendar {
 }
 
 model CalendarEvent {
-  id          Bytes    @id @db.Binary(36)
+  id          Bytes    @id @db.Binary(16)
   name        String   @db.VarChar(255)
   description String?  @db.Text
   startDate   DateTime @map("start_date")
@@ -35,14 +35,14 @@ model CalendarEvent {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  calendarId Bytes    @map("calendar_id") @db.Binary(36)
+  calendarId Bytes    @map("calendar_id") @db.Binary(16)
   calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
 
   @@index([name])
 }
 
 model Workspace {
-  id          Bytes    @id @db.Binary(36)
+  id          Bytes    @id @db.Binary(16)
   name        String   @db.VarChar(32)
   description String?  @db.Text
   public      Boolean  @default(false)
@@ -57,23 +57,36 @@ model Workspace {
 }
 
 model Project {
-  id          Bytes         @id @db.Binary(36)
+  id          Bytes         @id @db.Binary(16)
   name        String        @db.VarChar(32)
   description String?       @db.Text
   status      ProjectStatus @default(NOT_STARTED)
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  workspaceId Bytes     @map("workspace_id") @db.Binary(36)
+  workspaceId Bytes     @map("workspace_id") @db.Binary(16)
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  tasks Task[]
+  tasks   Task[]
+  Section Section[]
 
   @@index([name])
 }
 
+model Section {
+  id        Bytes    @id @db.Binary(16)
+  name      String   @db.VarChar(32)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  Project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId Bytes   @map("project_id") @db.Binary(16)
+
+  tasks Task[]
+}
+
 model Task {
-  id          Bytes      @id @db.Binary(36)
+  id          Bytes      @id @db.Binary(16)
   name        String     @db.VarChar(255)
   description String?    @db.Text
   status      TaskStatus @default(NOT_STARTED)
@@ -88,13 +101,16 @@ model Task {
 
   // relationships
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId Bytes     @map("workspace_id") @db.Binary(36)
+  workspaceId Bytes     @map("workspace_id") @db.Binary(16)
 
   Project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId Bytes   @map("project_id") @db.Binary(36)
+  projectId Bytes   @map("project_id") @db.Binary(16)
 
   parent   Task?  @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
-  parentId Bytes? @map("parent_id") @db.Binary(36)
+  parentId Bytes? @map("parent_id") @db.Binary(16)
+
+  section   Section? @relation(fields: [sectionId], references: [id])
+  sectionId Bytes?   @db.Binary(16)
 
   subtasks Task[] @relation("SubTasks")
 
