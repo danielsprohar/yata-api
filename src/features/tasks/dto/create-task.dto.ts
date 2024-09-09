@@ -12,13 +12,12 @@ export class CreateTaskDto {
   @IsUUID()
   workspaceId: string;
 
-  @IsOptional()
   @IsUUID()
-  parentId?: string;
+  projectId?: string;
 
   @IsOptional()
   @IsUUID()
-  projectId?: string;
+  parentId?: string;
 
   @IsOptional()
   @IsUUID()

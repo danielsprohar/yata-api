@@ -28,8 +28,8 @@ model CalendarEvent {
   id          Bytes    @id @db.Binary(36)
   name        String   @db.VarChar(255)
   description String?  @db.Text
-  start       DateTime @map("start_date")
-  end         DateTime @map("end_date")
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
   allDay      Boolean  @default(true) @map("all_day")
   rrule       String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
@@ -52,7 +52,6 @@ model Workspace {
 
   projects Project[]
   tasks    Task[]
-  boards   Board[]
 
   @@index([name])
 }
@@ -67,38 +66,6 @@ model Project {
 
   workspaceId Bytes     @map("workspace_id") @db.Binary(36)
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  tasks Task[]
-
-  @@index([name])
-}
-
-model Board {
-  id          Bytes    @id @db.Binary(36)
-  name        String   @db.VarChar(32)
-  description String?  @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId Bytes     @map("workspace_id") @db.Binary(36)
-
-  columns Column[]
-  tasks   Task[]
-
-  @@index([name])
-}
-
-model Column {
-  id          Bytes    @id @db.Binary(36)
-  name        String   @db.VarChar(32)
-  description String?  @db.Text
-  position    Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  Board   Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  boardId Bytes @map("board_id") @db.Binary(36)
 
   tasks Task[]
 
@@ -123,14 +90,8 @@ model Task {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId Bytes     @map("workspace_id") @db.Binary(36)
 
-  Project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId Bytes?   @map("project_id") @db.Binary(36)
-
-  Board   Board? @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  boardId Bytes? @map("board_id") @db.Binary(36)
-
-  Column   Column? @relation(fields: [columnId], references: [id], onDelete: SetNull)
-  columnId Bytes?  @map("column_id") @db.Binary(36)
+  Project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId Bytes   @map("project_id") @db.Binary(36)
 
   parent   Task?  @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
   parentId Bytes? @map("parent_id") @db.Binary(36)

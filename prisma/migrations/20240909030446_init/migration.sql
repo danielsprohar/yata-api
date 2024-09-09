@@ -58,33 +58,6 @@ CREATE TABLE `Project` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `Board` (
-    `id` BINARY(36) NOT NULL,
-    `name` VARCHAR(32) NOT NULL,
-    `description` TEXT NULL,
-    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updated_at` DATETIME(3) NOT NULL,
-    `workspace_id` BINARY(36) NOT NULL,
-
-    INDEX `Board_name_idx`(`name`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
-CREATE TABLE `Column` (
-    `id` BINARY(36) NOT NULL,
-    `name` VARCHAR(32) NOT NULL,
-    `description` TEXT NULL,
-    `position` INTEGER NOT NULL DEFAULT 0,
-    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updated_at` DATETIME(3) NOT NULL,
-    `board_id` BINARY(36) NOT NULL,
-
-    INDEX `Column_name_idx`(`name`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
 CREATE TABLE `Task` (
     `id` BINARY(36) NOT NULL,
     `name` VARCHAR(255) NOT NULL,
@@ -99,9 +72,7 @@ CREATE TABLE `Task` (
     `updated_at` DATETIME(3) NOT NULL,
     `rrule` TEXT NULL,
     `workspace_id` BINARY(36) NOT NULL,
-    `project_id` BINARY(36) NULL,
-    `board_id` BINARY(36) NULL,
-    `column_id` BINARY(36) NULL,
+    `project_id` BINARY(36) NOT NULL,
     `parent_id` BINARY(36) NULL,
 
     INDEX `Task_name_idx`(`name`),
@@ -115,22 +86,10 @@ ALTER TABLE `CalendarEvent` ADD CONSTRAINT `CalendarEvent_calendar_id_fkey` FORE
 ALTER TABLE `Project` ADD CONSTRAINT `Project_workspace_id_fkey` FOREIGN KEY (`workspace_id`) REFERENCES `Workspace`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Board` ADD CONSTRAINT `Board_workspace_id_fkey` FOREIGN KEY (`workspace_id`) REFERENCES `Workspace`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `Column` ADD CONSTRAINT `Column_board_id_fkey` FOREIGN KEY (`board_id`) REFERENCES `Board`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE `Task` ADD CONSTRAINT `Task_workspace_id_fkey` FOREIGN KEY (`workspace_id`) REFERENCES `Workspace`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Task` ADD CONSTRAINT `Task_project_id_fkey` FOREIGN KEY (`project_id`) REFERENCES `Project`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `Task` ADD CONSTRAINT `Task_board_id_fkey` FOREIGN KEY (`board_id`) REFERENCES `Board`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `Task` ADD CONSTRAINT `Task_column_id_fkey` FOREIGN KEY (`column_id`) REFERENCES `Column`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Task` ADD CONSTRAINT `Task_parent_id_fkey` FOREIGN KEY (`parent_id`) REFERENCES `Task`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

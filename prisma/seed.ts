@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 async function main() {
   await prisma.task.deleteMany();
   await prisma.project.deleteMany();
-  await prisma.board.deleteMany();
   await prisma.workspace.deleteMany();
 
   const workspace = await prisma.workspace.create({
@@ -31,69 +30,50 @@ async function main() {
     ],
   });
 
-  await prisma.task.createMany({
-    data: [
-      {
-        id: Buffer.from(uuidv4()),
-        name: 'Create a new workspace',
-        workspaceId: workspace.id,
-      },
-      {
-        id: Buffer.from(uuidv4()),
-        name: 'Create a new project',
-        workspaceId: workspace.id,
-      },
-      {
-        id: Buffer.from(uuidv4()),
-        name: 'Create a new task',
-        workspaceId: workspace.id,
-      },
-      {
-        id: Buffer.from(uuidv4()),
-        name: 'Create a new calendar',
-        workspaceId: workspace.id,
-      },
-      {
-        id: Buffer.from(uuidv4()),
-        name: 'Create a board',
-        workspaceId: workspace.id,
-      },
-      {
-        id: Buffer.from(uuidv4()),
-        name: 'Create a board columns',
-        workspaceId: workspace.id,
-      },
-    ],
-  });
+  const projects = await prisma.project.findMany({});
 
-  await prisma.board.create({
-    data: {
-      id: Buffer.from(uuidv4()),
-      name: 'My First Kanban',
-      workspaceId: workspace.id,
-      columns: {
-        createMany: {
-          data: [
-            {
-              id: Buffer.from(uuidv4()),
-              name: 'To Do',
-              position: 0,
-            },
-            {
-              id: Buffer.from(uuidv4()),
-              name: 'In Progress',
-              position: 1,
-            },
-            {
-              id: Buffer.from(uuidv4()),
-              name: 'Done',
-              position: 2,
-            },
-          ],
+  for (const project of projects) {
+    await prisma.task.createMany({
+      data: [
+        {
+          id: Buffer.from(uuidv4()),
+          name: 'Create a new workspace',
+          workspaceId: workspace.id,
+          projectId: project.id,
         },
-      },
-    },
-  });
+        {
+          id: Buffer.from(uuidv4()),
+          name: 'Create a new project',
+          workspaceId: workspace.id,
+          projectId: project.id,
+        },
+        {
+          id: Buffer.from(uuidv4()),
+          name: 'Create a new task',
+          workspaceId: workspace.id,
+          projectId: project.id,
+        },
+        {
+          id: Buffer.from(uuidv4()),
+          name: 'Create a new calendar',
+          workspaceId: workspace.id,
+          projectId: project.id,
+        },
+        {
+          id: Buffer.from(uuidv4()),
+          name: 'Create a board',
+          workspaceId: workspace.id,
+          projectId: project.id,
+        },
+        {
+          id: Buffer.from(uuidv4()),
+          name: 'Create a board columns',
+          workspaceId: workspace.id,
+          projectId: project.id,
+        },
+      ],
+    });
+  }
 }
 
 main()

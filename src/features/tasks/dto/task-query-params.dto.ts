@@ -16,10 +16,6 @@ export class TaskQueryParams extends QueryParams {
   parentId?: string;
 
   @IsOptional()
-  @IsUUID()
-  columnId?: string;
-
-  @IsOptional()
   @IsEnum(TaskStatus)
   status?: TaskStatus;
 

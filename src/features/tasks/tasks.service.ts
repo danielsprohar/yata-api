@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma, TaskStatus } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { PageResponse } from '../../core/model/page-response.model';
 import { generateId } from '../../core/utils/uuid.util';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ColumnNotFoundException } from '../kanban/exceptions/column-not-found.exception';
 import { ProjectNotFoundException } from '../projects/exception/project-not-found.exception';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskQueryParams } from './dto/task-query-params.dto';
@@ -27,45 +27,34 @@ export class TasksService {
         throw new TaskNotFoundException();
       }
     }
-    if (dto.projectId) {
-      const projectCount = await this.prisma.project.count({
-        where: {
-          id: Buffer.from(dto.projectId),
+
+    try {
+      const task = await this.prisma.task.create({
+        data: {
+          id: generateId(),
+          name: dto.name,
+          description: dto.description,
+          status: dto.status,
+          dueDate: dto.dueDate,
+          priority: dto.priority,
+          workspaceId: Buffer.from(dto.workspaceId),
+          projectId: Buffer.from(dto.projectId),
+          parentId: dto.parentId ? Buffer.from(dto.parentId) : undefined,
         },
       });
 
-      if (projectCount === 0) {
-        throw new ProjectNotFoundException();
+      return taskModel(task);
+    } catch (e) {
+      console.error(e);
+      // @see https://www.prisma.io/docs/orm/reference/error-reference#p2003
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === 'P2003') {
+          throw new ProjectNotFoundException();
+        }
       }
+
+      throw new UnprocessableEntityException("Could not create the task");
     }
-    if (dto.columnId) {
-      const columnCount = await this.prisma.column.count({
-        where: {
-          id: Buffer.from(dto.columnId),
-        },
-      });
-
-      if (columnCount === 0) {
-        throw new ColumnNotFoundException();
-      }
-    }
-
-    const task = await this.prisma.task.create({
-      data: {
-        id: generateId(),
-        name: dto.name,
-        description: dto.description,
-        status: dto.status,
-        dueDate: dto.dueDate,
-        priority: dto.priority,
-        workspaceId: Buffer.from(dto.workspaceId),
-        projectId: dto.projectId ? Buffer.from(dto.projectId) : undefined,
-        columnId: dto.columnId ? Buffer.from(dto.columnId) : undefined,
-        parentId: dto.parentId ? Buffer.from(dto.parentId) : undefined,
-      },
-    });
-
-    return taskModel(task);
   }
 
   async findAll(params: TaskQueryParams): Promise<PageResponse<TaskModel>> {
@@ -75,7 +64,6 @@ export class TasksService {
       to,
       projectId,
       workspaceId,
-      columnId,
       dir,
       parentId,
       priority,
@@ -109,9 +97,6 @@ export class TasksService {
       taskFilter['project'] = {
         workspaceId: Buffer.from(workspaceId),
       };
-    }
-    if (columnId) {
-      taskFilter['columnId'] = Buffer.from(columnId);
     }
     if (parentId) {
       taskFilter['parentId'] = Buffer.from(parentId);
@@ -191,7 +176,6 @@ export class TasksService {
             ? Buffer.from(dto.workspaceId)
             : undefined,
           projectId: dto.projectId ? Buffer.from(dto.projectId) : undefined,
-          columnId: dto.columnId ? Buffer.from(dto.columnId) : undefined,
           parentId: dto.parentId ? Buffer.from(dto.parentId) : undefined,
           startedAt:
             dto.status === TaskStatus.IN_PROGRESS ? new Date() : undefined,
