@@ -7,9 +7,9 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
+import { TaskDto, toTaskDto } from "./dto/task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { TaskNotFoundException } from "./exception/task-not-found.expection";
-import { toTaskDto, TaskDto } from "./dto/task.dto";
 
 @Injectable()
 export class TasksService {
@@ -62,6 +62,7 @@ export class TasksService {
     pageSize: number,
     params: TaskQueryParams,
   ): Promise<PageResponse<TaskDto>> {
+    console.log("params", params);
     const {
       status,
       from,
@@ -73,53 +74,72 @@ export class TasksService {
       priority,
     } = params;
 
-    const taskFilter: Prisma.TaskWhereInput = {};
+    const filters: Prisma.TaskWhereInput[] = [];
+    console.log("from", from);
+    console.log("to", to);
+
     if (from && to) {
-      taskFilter["AND"] = {
+      filters.push({
+        dueDate: {
+          gte: new Date(from),
+          lte: new Date(to),
+        },
+      });
+    } else if (from) {
+      filters.push({
         dueDate: {
           gte: from,
+        },
+      });
+    } else if (to) {
+      filters.push({
+        dueDate: {
           lte: to,
         },
-      };
-    } else if (from) {
-      taskFilter["dueDate"] = {
-        gte: from,
-      };
-    } else if (to) {
-      taskFilter["dueDate"] = {
-        lte: to,
-      };
+      });
     }
 
     if (projectId) {
-      taskFilter["projectId"] = uuidToBuffer(projectId);
+      filters.push({
+        projectId: uuidToBuffer(projectId),
+      });
     }
     if (workspaceId) {
-      taskFilter["project"] = {
+      filters.push({
         workspaceId: uuidToBuffer(workspaceId),
-      };
+      });
     }
     if (parentId) {
-      taskFilter["parentId"] = uuidToBuffer(parentId);
+      filters.push({
+        parentId: uuidToBuffer(parentId),
+      });
     }
     if (priority) {
-      taskFilter["priority"] = priority;
+      filters.push({
+        priority: priority,
+      });
     }
     if (status) {
-      taskFilter["status"] = status;
+      filters.push({
+        status: status,
+      });
     }
 
     const [data, count] = await Promise.all([
       this.prisma.task.findMany({
         skip: page * pageSize,
         take: Math.min(+pageSize, 50),
-        where: taskFilter,
+        where: {
+          AND: filters,
+        },
         orderBy: {
           createdAt: dir === "asc" ? "asc" : "desc",
         },
       }),
       this.prisma.task.count({
-        where: taskFilter,
+        where: {
+          AND: filters,
+        },
       }),
     ]);
 
@@ -178,6 +198,7 @@ export class TasksService {
             : undefined,
           projectId: dto.projectId ? uuidToBuffer(dto.projectId) : undefined,
           parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
+          sectionId: dto.sectionId ? uuidToBuffer(dto.sectionId) : undefined,
           startedAt:
             dto.status === TaskStatus.IN_PROGRESS ? new Date() : undefined,
           completedAt:

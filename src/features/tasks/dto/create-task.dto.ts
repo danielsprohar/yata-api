@@ -21,11 +21,7 @@ export class CreateTaskDto {
 
   @IsOptional()
   @IsUUID()
-  boardId?: string;
-
-  @IsOptional()
-  @IsUUID()
-  columnId?: string;
+  sectionId?: string;
 
   @IsString()
   @MaxLength(255)

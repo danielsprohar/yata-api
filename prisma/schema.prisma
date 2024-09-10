@@ -98,6 +98,7 @@ model Task {
   allDay      Boolean    @default(true) @map("all_day")
   startedAt   DateTime?  @map("started_at")
   completedAt DateTime?  @map("completed_at")
+  // TODO: Add tags
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
   rrule       String?    @db.Text
