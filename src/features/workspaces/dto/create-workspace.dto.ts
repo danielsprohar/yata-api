@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBooleanString,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from "class-validator";
 
 export class CreateWorkspaceDto {
   @IsString()
@@ -9,10 +15,11 @@ export class CreateWorkspaceDto {
   @IsOptional()
   @MaxLength(255)
   description: string;
-  
-  public?: boolean;
-  
+
   @IsOptional()
-  @MaxLength(36)
-  ownerId?: string;
+  @IsBooleanString()
+  public?: boolean;
+
+  @IsOptional()
+  ownerId: string;
 }

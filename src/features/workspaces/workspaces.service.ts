@@ -1,44 +1,42 @@
 import { Injectable } from "@nestjs/common";
 import { PageResponse } from "../../core/model/page-response.model";
-import {
-  bufferToUuid,
-  generatePrimaryKey,
-  uuidToBuffer,
-} from "../../core/utils/uuid.util";
+import { generatePrimaryKey, uuidToBuffer } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
 import { UpdateWorkspaceDto } from "./dto/update-workspace.dto";
-import { WorkspaceDto } from "./dto/workspace.dto";
+import { toWorkspaceDto, WorkspaceDto } from "./dto/workspace.dto";
 import { WorkspaceNotFoundException } from "./exception/workspace-not-found.exception";
 
 @Injectable()
 export class WorkspacesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createWorkspaceDto: CreateWorkspaceDto): Promise<WorkspaceDto> {
+  async create(dto: CreateWorkspaceDto): Promise<WorkspaceDto> {
     const id = generatePrimaryKey();
     const workspace = await this.prisma.workspace.create({
       data: {
         id,
-        name: createWorkspaceDto.name,
-        description: createWorkspaceDto.description,
-        ownerId: createWorkspaceDto.ownerId,
+        name: dto.name,
+        description: dto.description,
+        ownerId: uuidToBuffer(dto.ownerId),
       },
     });
 
-    // Convert the id to a string before returning it
-    return { ...workspace, id: bufferToUuid(workspace.id) };
+    return toWorkspaceDto(workspace);
   }
 
   async findAll(
     page: number,
     pageSize: number,
+    ownerId: string,
   ): Promise<PageResponse<WorkspaceDto>> {
-    // TODO: Filter by user.id
     const [data, count] = await Promise.all([
       this.prisma.workspace.findMany({
         skip: page * pageSize,
         take: pageSize,
+        where: {
+          ownerId: uuidToBuffer(ownerId),
+        },
       }),
       this.prisma.workspace.count(),
     ]);
@@ -47,10 +45,7 @@ export class WorkspacesService {
       page,
       pageSize,
       count,
-      data: data.map((workspace) => ({
-        ...workspace,
-        id: bufferToUuid(workspace.id),
-      })),
+      data: data.map((workspace) => toWorkspaceDto(workspace)),
     };
   }
 
@@ -65,7 +60,7 @@ export class WorkspacesService {
       throw new WorkspaceNotFoundException();
     }
 
-    return { ...workspace, id: bufferToUuid(workspace.id) };
+    return toWorkspaceDto(workspace);
   }
 
   async update(id: string, updateWorkspaceDto: UpdateWorkspaceDto) {
@@ -92,7 +87,7 @@ export class WorkspacesService {
           version: workspace.version + 1,
         },
       })
-      .then((workspace) => ({ ...workspace, id: bufferToUuid(workspace.id) }));
+      .then((workspace) => toWorkspaceDto(workspace));
   }
 
   async remove(id: string) {

@@ -13,6 +13,8 @@ import {
   Query,
   UnprocessableEntityException,
 } from "@nestjs/common";
+import { UserProfile } from "../../auth/decorators/user-profile.decorator";
+import { User } from "../../auth/model/user.model";
 import { FindOneParam } from "../../core/dto/find-one-param";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
 import { UpdateWorkspaceDto } from "./dto/update-workspace.dto";
@@ -24,12 +26,24 @@ export class WorkspacesController {
   constructor(private readonly workspacesService: WorkspacesService) {}
 
   @Post()
-  create(@Body() createWorkspaceDto: CreateWorkspaceDto) {
-    return this.workspacesService.create(createWorkspaceDto);
+  create(
+    @UserProfile() user: User,
+    @Body() createWorkspaceDto: CreateWorkspaceDto,
+  ) {
+    return this.workspacesService.create({
+      ...createWorkspaceDto,
+      ownerId: user.id,
+    });
   }
 
   @Get()
-  findAll(@Query("page") page: string, @Query("pageSize") pageSize: string) {
+  findAll(
+    @UserProfile() user: User,
+    @Query("page") page: string,
+    @Query("pageSize") pageSize: string,
+  ) {
+    console.log("user", user);
+
     if (page && Number.isNaN(Number.parseInt(page))) {
       throw new BadRequestException("Invalid page value");
     }
@@ -40,6 +54,7 @@ export class WorkspacesController {
     return this.workspacesService.findAll(
       page ? Math.max(0, parseInt(page, 10)) : 0,
       pageSize ? Math.max(1, parseInt(pageSize, 10)) : 10,
+      user.id,
     );
   }
 
