@@ -39,6 +39,7 @@ export class TasksService {
           priority: dto.priority,
           workspaceId: uuidToBuffer(dto.workspaceId),
           projectId: uuidToBuffer(dto.projectId),
+          sectionId: dto.sectionId ? uuidToBuffer(dto.sectionId) : undefined,
           parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
         },
       });

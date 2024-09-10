@@ -32,7 +32,8 @@ export class SectionsService {
       data: {
         id: sectionId,
         name: createSectionDto.name,
-        projectId: Buffer.from(createSectionDto.projectId),
+        position: createSectionDto.position,
+        projectId: uuidToBuffer(createSectionDto.projectId),
       },
     });
 
