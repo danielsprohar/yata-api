@@ -10,13 +10,13 @@ import { WorkspaceNotFoundException } from "../workspaces/exception/workspace-no
 import { CreateProjectDto } from "./dto/create-project.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
 import { ProjectNotFoundException } from "./exception/project-not-found.exception";
-import { ProjectModel } from "./model/project.model";
+import { ProjectDto } from "./dto/project.dto";
 
 @Injectable()
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createProjectDto: CreateProjectDto): Promise<ProjectModel> {
+  async create(createProjectDto: CreateProjectDto): Promise<ProjectDto> {
     const workspaceCount = await this.prisma.workspace.count({
       where: {
         id: uuidToBuffer(createProjectDto.workspaceId),
@@ -47,7 +47,7 @@ export class ProjectsService {
     page: number,
     pageSize: number,
     workspaceId: string,
-  ): Promise<PageResponse<ProjectModel>> {
+  ): Promise<PageResponse<ProjectDto>> {
     const [data, count] = await Promise.all([
       this.prisma.project.findMany({
         skip: page * pageSize,
@@ -101,6 +101,7 @@ export class ProjectsService {
       select: {
         id: true,
         workspaceId: true,
+        version: true,
       },
     });
 
@@ -108,6 +109,7 @@ export class ProjectsService {
       throw new ProjectNotFoundException();
     }
 
+    // TODO: Concurrency update check
     return this.prisma.project
       .update({
         where: {
@@ -117,6 +119,7 @@ export class ProjectsService {
           name: updateProjectDto.name,
           description: updateProjectDto.description,
           status: updateProjectDto.status,
+          version: project.version + 1,
         },
       })
       .then((updatedProject) => ({

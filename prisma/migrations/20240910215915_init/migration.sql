@@ -7,6 +7,7 @@ CREATE TABLE `Calendar` (
     `owner_id` VARCHAR(191) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `version` INTEGER NOT NULL DEFAULT 1,
 
     INDEX `Calendar_name_idx`(`name`),
     PRIMARY KEY (`id`)
@@ -23,6 +24,7 @@ CREATE TABLE `CalendarEvent` (
     `rrule` TEXT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `version` INTEGER NOT NULL DEFAULT 1,
     `calendar_id` BINARY(16) NOT NULL,
 
     INDEX `CalendarEvent_name_idx`(`name`),
@@ -38,6 +40,7 @@ CREATE TABLE `Workspace` (
     `owner_id` VARCHAR(191) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `version` INTEGER NOT NULL DEFAULT 1,
 
     INDEX `Workspace_name_idx`(`name`),
     PRIMARY KEY (`id`)
@@ -51,6 +54,7 @@ CREATE TABLE `Project` (
     `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'CANCELLED', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `version` INTEGER NOT NULL DEFAULT 1,
     `workspace_id` BINARY(16) NOT NULL,
 
     INDEX `Project_name_idx`(`name`),
@@ -64,6 +68,7 @@ CREATE TABLE `Section` (
     `position` INTEGER NOT NULL DEFAULT 0,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `version` INTEGER NOT NULL DEFAULT 1,
     `project_id` BINARY(16) NOT NULL,
 
     UNIQUE INDEX `Section_project_id_position_key`(`project_id`, `position`),
@@ -77,13 +82,14 @@ CREATE TABLE `Task` (
     `description` TEXT NULL,
     `status` ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'NOT_STARTED',
     `due_date` DATETIME(3) NULL,
-    `priority` ENUM('NONE', 'LOW', 'MEDIUM', 'HIGH') NOT NULL DEFAULT 'MEDIUM',
+    `priority` ENUM('NONE', 'LOW', 'MEDIUM', 'HIGH') NOT NULL DEFAULT 'NONE',
     `all_day` BOOLEAN NOT NULL DEFAULT true,
     `started_at` DATETIME(3) NULL,
     `completed_at` DATETIME(3) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
     `rrule` TEXT NULL,
+    `version` INTEGER NOT NULL DEFAULT 1,
     `workspace_id` BINARY(16) NOT NULL,
     `project_id` BINARY(16) NOT NULL,
     `parent_id` BINARY(16) NULL,

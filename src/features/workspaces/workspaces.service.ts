@@ -79,6 +79,7 @@ export class WorkspacesService {
       throw new WorkspaceNotFoundException();
     }
 
+    // TODO: Concurrency update check
     return this.prisma.workspace
       .update({
         where: {
@@ -88,6 +89,7 @@ export class WorkspacesService {
           name: updateWorkspaceDto.name,
           description: updateWorkspaceDto.description,
           public: updateWorkspaceDto.public,
+          version: workspace.version + 1,
         },
       })
       .then((workspace) => ({ ...workspace, id: bufferToUuid(workspace.id) }));

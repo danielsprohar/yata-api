@@ -19,6 +19,7 @@ model Calendar {
   ownerId     String?         @map("owner_id")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
+  version     Int             @default(1)
   events      CalendarEvent[]
 
   @@index([name])
@@ -34,6 +35,7 @@ model CalendarEvent {
   rrule       String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  version     Int             @default(1)
 
   calendarId Bytes    @map("calendar_id") @db.Binary(16)
   calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
@@ -49,6 +51,7 @@ model Workspace {
   ownerId     String?  @map("owner_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  version     Int             @default(1)
 
   projects Project[]
   tasks    Task[]
@@ -63,6 +66,7 @@ model Project {
   status      ProjectStatus @default(NOT_STARTED)
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
+  version     Int             @default(1)
 
   workspaceId Bytes     @map("workspace_id") @db.Binary(16)
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -79,6 +83,7 @@ model Section {
   position  Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  version     Int             @default(1)
 
   Project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId Bytes   @map("project_id") @db.Binary(16)
@@ -102,6 +107,7 @@ model Task {
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
   rrule       String?    @db.Text
+  version     Int             @default(1)
 
   // relationships
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

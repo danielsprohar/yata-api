@@ -183,12 +183,14 @@ export class TasksService {
       throw new TaskNotFoundException();
     }
 
+    // TODO: Concurrency update check
     return this.prisma.task
       .update({
         where: {
           id: uuidToBuffer(id),
         },
         data: {
+          version: task.version + 1,
           name: dto.name,
           description: dto.description,
           status: dto.status,
