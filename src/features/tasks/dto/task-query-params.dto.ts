@@ -1,8 +1,8 @@
 import { Priority, TaskStatus } from '@prisma/client';
 import { IsEnum, IsISO8601, IsOptional, IsUUID } from 'class-validator';
-import { QueryParams } from '../../../core/dto/query-params.dto';
+import { PageQueryParams } from '../../../core/dto/page-query-params.dto';
 
-export class TaskQueryParams extends QueryParams {
+export class TaskQueryParams extends PageQueryParams {
   @IsOptional()
   @IsUUID()
   workspaceId?: string;

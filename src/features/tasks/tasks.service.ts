@@ -15,11 +15,14 @@ import { TaskNotFoundException } from "./exception/task-not-found.expection";
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateTaskDto): Promise<TaskDto> {
+  async create(dto: CreateTaskDto, ownerId: string): Promise<TaskDto> {
+    const ownerIdBuffer = uuidToBuffer(ownerId);
+
     if (dto.parentId) {
       const parentTaskCount = await this.prisma.task.count({
         where: {
           id: uuidToBuffer(dto.parentId),
+          ownerId: ownerIdBuffer,
         },
       });
 
@@ -38,6 +41,7 @@ export class TasksService {
           dueDate: dto.dueDate,
           priority: dto.priority,
           workspaceId: uuidToBuffer(dto.workspaceId),
+          ownerId: ownerIdBuffer,
           projectId: uuidToBuffer(dto.projectId),
           sectionId: dto.sectionId ? uuidToBuffer(dto.sectionId) : undefined,
           parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
@@ -59,11 +63,11 @@ export class TasksService {
   }
 
   async findAll(
-    page: number,
-    pageSize: number,
     params: TaskQueryParams,
+    ownerId: string,
   ): Promise<PageResponse<TaskDto>> {
-    console.log("params", params);
+    const page = Math.max(+params.page || 0, 0);
+    const pageSize = Math.min(+params.pageSize || 10, 50);
     const {
       status,
       from,
@@ -75,9 +79,11 @@ export class TasksService {
       priority,
     } = params;
 
-    const filters: Prisma.TaskWhereInput[] = [];
-    console.log("from", from);
-    console.log("to", to);
+    const filters: Prisma.TaskWhereInput[] = [
+      {
+        ownerId: uuidToBuffer(ownerId),
+      },
+    ];
 
     if (from && to) {
       filters.push({
@@ -126,21 +132,20 @@ export class TasksService {
       });
     }
 
+    const whereClause = {
+      AND: filters,
+    };
     const [data, count] = await Promise.all([
       this.prisma.task.findMany({
         skip: page * pageSize,
-        take: Math.min(+pageSize, 50),
-        where: {
-          AND: filters,
-        },
+        take: pageSize,
+        where: whereClause,
         orderBy: {
           createdAt: dir === "asc" ? "asc" : "desc",
         },
       }),
       this.prisma.task.count({
-        where: {
-          AND: filters,
-        },
+        where: whereClause,
       }),
     ]);
 
@@ -152,10 +157,11 @@ export class TasksService {
     };
   }
 
-  async findOne(id: string): Promise<TaskDto> {
+  async findOne(id: string, ownerId: string): Promise<TaskDto> {
     const task = await this.prisma.task.findUnique({
       where: {
         id: uuidToBuffer(id),
+        ownerId: uuidToBuffer(ownerId),
       },
       include: {
         subtasks: true,
@@ -166,16 +172,18 @@ export class TasksService {
       throw new TaskNotFoundException();
     }
 
-    return {
-      ...toTaskDto(task),
-      subTasks: task.subtasks.map((subTask) => toTaskDto(subTask)),
-    };
+    return toTaskDto(task);
   }
 
-  async update(id: string, dto: UpdateTaskDto): Promise<TaskDto> {
+  async update(
+    id: string,
+    ownerId: string,
+    dto: UpdateTaskDto,
+  ): Promise<TaskDto> {
     const task = await this.prisma.task.findUnique({
       where: {
         id: uuidToBuffer(id),
+        ownerId: uuidToBuffer(ownerId),
       },
     });
 
@@ -183,38 +191,44 @@ export class TasksService {
       throw new TaskNotFoundException();
     }
 
-    // TODO: Concurrency update check
-    return this.prisma.task
-      .update({
-        where: {
-          id: uuidToBuffer(id),
-        },
-        data: {
-          version: task.version + 1,
-          name: dto.name,
-          description: dto.description,
-          status: dto.status,
-          dueDate: dto.dueDate,
-          priority: dto.priority,
-          workspaceId: dto.workspaceId
-            ? uuidToBuffer(dto.workspaceId)
-            : undefined,
-          projectId: dto.projectId ? uuidToBuffer(dto.projectId) : undefined,
-          parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
-          sectionId: dto.sectionId ? uuidToBuffer(dto.sectionId) : undefined,
-          startedAt:
-            dto.status === TaskStatus.IN_PROGRESS ? new Date() : undefined,
-          completedAt:
-            dto.status === TaskStatus.COMPLETED ? new Date() : undefined,
-        },
-      })
-      .then((updatedTask) => toTaskDto(updatedTask));
+    try {
+      return this.prisma.task
+        .update({
+          where: {
+            id: uuidToBuffer(id),
+          },
+          data: {
+            version: task.version + 1,
+            name: dto.name,
+            description: dto.description,
+            status: dto.status,
+            dueDate: dto.dueDate,
+            priority: dto.priority,
+            workspaceId: dto.workspaceId
+              ? uuidToBuffer(dto.workspaceId)
+              : undefined,
+            projectId: dto.projectId ? uuidToBuffer(dto.projectId) : undefined,
+            parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
+            sectionId: dto.sectionId ? uuidToBuffer(dto.sectionId) : undefined,
+            startedAt:
+              dto.status === TaskStatus.IN_PROGRESS ? new Date() : undefined,
+            completedAt:
+              dto.status === TaskStatus.COMPLETED ? new Date() : undefined,
+          },
+        })
+        .then((updatedTask) => toTaskDto(updatedTask));
+    } catch (e) {
+      // TODO: Concurrency update check
+      console.error(e);
+      throw new UnprocessableEntityException("Could not update the task");
+    }
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, userId: string): Promise<void> {
     const task = await this.prisma.task.delete({
       where: {
         id: uuidToBuffer(id),
+        ownerId: uuidToBuffer(userId),
       },
     });
 

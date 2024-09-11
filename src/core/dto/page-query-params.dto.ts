@@ -1,14 +1,14 @@
 import { Prisma } from "@prisma/client";
 import { IsEnum, IsNumberString, IsOptional } from "class-validator";
 
-export class QueryParams {
+export class PageQueryParams {
   @IsNumberString()
   @IsOptional()
-  page?: string;
+  page: string;
 
   @IsNumberString()
   @IsOptional()
-  pageSize?: string;
+  pageSize: string;
 
   @IsOptional()
   @IsEnum(Prisma.SortOrder)

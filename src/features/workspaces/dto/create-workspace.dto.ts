@@ -19,7 +19,4 @@ export class CreateWorkspaceDto {
   @IsOptional()
   @IsBooleanString()
   public?: boolean;
-
-  @IsOptional()
-  ownerId: string;
 }

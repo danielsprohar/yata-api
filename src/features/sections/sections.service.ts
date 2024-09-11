@@ -1,14 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { PageResponse } from "../../core/model/page-response.model";
-import {
-  bufferToUuid,
-  generatePrimaryKey,
-  uuidToBuffer,
-} from "../../core/utils/uuid.util";
+import { generatePrimaryKey, uuidToBuffer } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
 import { CreateSectionDto } from "./dto/create-section.dto";
-import { SectionDto } from "./dto/section.dto";
+import { SectionQueryParams } from "./dto/section-query-params.dto";
+import { SectionDto, toSectionDto } from "./dto/section.dto";
 import { UpdateSectionDto } from "./dto/update-section.dto";
 import { SectionNotFoundException } from "./exception/section-not-found-exception";
 
@@ -16,10 +13,12 @@ import { SectionNotFoundException } from "./exception/section-not-found-exceptio
 export class SectionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createSectionDto: CreateSectionDto): Promise<SectionDto> {
+  async create(dto: CreateSectionDto, ownerId: string): Promise<SectionDto> {
+    const ownerIdBuffer = uuidToBuffer(ownerId);
     const project = await this.prisma.project.findUnique({
       where: {
-        id: uuidToBuffer(createSectionDto.projectId),
+        id: uuidToBuffer(dto.projectId),
+        ownerId: ownerIdBuffer,
       },
     });
 
@@ -27,27 +26,29 @@ export class SectionsService {
       throw new ProjectNotFoundException();
     }
 
-    const sectionId = generatePrimaryKey();
-    const section = await this.prisma.section.create({
-      data: {
-        id: sectionId,
-        name: createSectionDto.name,
-        position: createSectionDto.position,
-        projectId: uuidToBuffer(createSectionDto.projectId),
-      },
-    });
+    try {
+      const section = await this.prisma.section.create({
+        data: {
+          id: generatePrimaryKey(),
+          name: dto.name,
+          position: dto.position,
+          projectId: uuidToBuffer(dto.projectId),
+          ownerId: ownerIdBuffer,
+        },
+      });
 
-    return {
-      ...section,
-      id: bufferToUuid(section.id),
-      projectId: bufferToUuid(section.projectId),
-    };
+      return toSectionDto(section);
+    } catch (e) {
+      console.error(e);
+      throw new UnprocessableEntityException(e);
+    }
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, ownerId: string): Promise<void> {
     const section = await this.prisma.section.delete({
       where: {
         id: uuidToBuffer(id),
+        ownerId: uuidToBuffer(ownerId),
       },
     });
 
@@ -56,10 +57,11 @@ export class SectionsService {
     }
   }
 
-  async findById(id: string): Promise<SectionDto> {
+  async findById(id: string, ownerId: string): Promise<SectionDto> {
     const section = await this.prisma.section.findUnique({
       where: {
         id: uuidToBuffer(id),
+        ownerId: uuidToBuffer(ownerId),
       },
     });
 
@@ -67,65 +69,70 @@ export class SectionsService {
       throw new SectionNotFoundException();
     }
 
-    return {
-      ...section,
-      id: bufferToUuid(section.id),
-      projectId: bufferToUuid(section.projectId),
-    };
+    return toSectionDto(section);
   }
 
   async fetch(
-    page: number,
-    pageSize: number,
-    projectId: string,
+    params: SectionQueryParams,
+    ownerId: string,
   ): Promise<PageResponse<SectionDto>> {
-    const sections = await this.prisma.section.findMany({
-      where: {
-        projectId: uuidToBuffer(projectId),
-      },
-      skip: page * pageSize,
-      take: pageSize,
-    });
+    const page = Math.max(+params.page || 0, 0);
+    const pageSize = Math.min(+params.pageSize || 10, 50);
+    const projectId = params.projectId;
+    const projectIdBuffer = uuidToBuffer(projectId);
+    const sectionQueryFilter = {
+      projectId: projectIdBuffer,
+      ownerId: uuidToBuffer(ownerId),
+    };
 
-    const count = await this.prisma.section.count({
-      where: {
-        projectId: uuidToBuffer(projectId),
-      },
-    });
+    const [data, count] = await Promise.all([
+      this.prisma.section.findMany({
+        skip: page * pageSize,
+        take: pageSize,
+        where: sectionQueryFilter,
+      }),
+      this.prisma.section.count({
+        where: sectionQueryFilter,
+      }),
+    ]);
 
     return {
       count,
       page,
       pageSize,
-      data: sections.map((section) => ({
-        ...section,
-        id: bufferToUuid(section.id),
-        projectId: bufferToUuid(section.projectId),
-      })),
+      data: data.map((section) => toSectionDto(section)),
     };
   }
 
   async update(
     id: string,
-    updateSectionDto: UpdateSectionDto,
+    ownerId: string,
+    dto: UpdateSectionDto,
   ): Promise<SectionDto> {
-    const section = await this.prisma.section.update({
-      where: {
-        id: uuidToBuffer(id),
-      },
-      data: {
-        name: updateSectionDto.name,
-      },
-    });
+    try {
+      const section = await this.prisma.section.update({
+        where: {
+          id: uuidToBuffer(id),
+          ownerId: uuidToBuffer(ownerId),
+        },
+        data: {
+          name: dto.name,
+          position: dto.position,
+          version: {
+            increment: 1,
+          },
+        },
+      });
 
-    if (!section) {
-      throw new SectionNotFoundException();
+      if (!section) {
+        throw new SectionNotFoundException();
+      }
+
+      return toSectionDto(section);
+    } catch (e) {
+      // TODO: Concurency error handling
+      console.error(e);
+      throw new UnprocessableEntityException(e);
     }
-
-    return {
-      ...section,
-      id: bufferToUuid(section.id),
-      projectId: bufferToUuid(section.projectId),
-    };
   }
 }

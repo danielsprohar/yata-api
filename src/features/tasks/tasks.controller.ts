@@ -3,18 +3,16 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Post,
   Query,
-  UnprocessableEntityException,
 } from "@nestjs/common";
+import { UserProfile } from "../../auth/decorators/user-profile.decorator";
 import { FindOneParam } from "../../core/dto/find-one-param";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
-import { TaskNotFoundException } from "./exception/task-not-found.expection";
 import { TasksService } from "./tasks.service";
 
 @Controller("tasks")
@@ -22,67 +20,40 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  async create(@Body() createTaskDto: CreateTaskDto) {
-    try {
-      return await this.tasksService.create(createTaskDto);
-    } catch (e) {
-      console.error(e);
-      if (e instanceof NotFoundException) {
-        throw e;
-      }
-      throw new UnprocessableEntityException(e);
-    }
+  async create(@UserProfile("id") userId: string, @Body() dto: CreateTaskDto) {
+    return await this.tasksService.create(dto, userId);
   }
 
   @Get()
-  findAll(@Query() queryParams: TaskQueryParams) {
-    const page = Math.max(0, queryParams.page ? +queryParams.page : 0);
-    const pageSize = Math.min(
-      50,
-      queryParams.pageSize ? +queryParams.pageSize : 50,
-    );
-    return this.tasksService.findAll(page, pageSize, queryParams);
+  findAll(
+    @UserProfile("id") userId: string,
+    @Query() queryParams: TaskQueryParams,
+  ) {
+    return this.tasksService.findAll(queryParams, userId);
   }
 
   @Get(":id")
-  async findOne(@Param() params: FindOneParam) {
-    try {
-      return await this.tasksService.findOne(params.id);
-    } catch (e) {
-      console.error(e);
-      if (e instanceof TaskNotFoundException) {
-        throw e;
-      }
-      throw new UnprocessableEntityException(e);
-    }
+  async findOne(
+    @UserProfile("id") userId: string,
+    @Param() params: FindOneParam,
+  ) {
+    return await this.tasksService.findOne(params.id, userId);
   }
 
   @Patch(":id")
   async update(
+    @UserProfile("id") userId: string,
     @Param() params: FindOneParam,
     @Body() updateTaskDto: UpdateTaskDto,
   ) {
-    try {
-      return this.tasksService.update(params.id, updateTaskDto);
-    } catch (e) {
-      console.error(e);
-      if (e instanceof TaskNotFoundException) {
-        throw e;
-      }
-      throw new UnprocessableEntityException(e);
-    }
+    return this.tasksService.update(params.id, userId, updateTaskDto);
   }
 
   @Delete(":id")
-  async remove(@Param() params: FindOneParam) {
-    try {
-      await this.tasksService.remove(params.id);
-    } catch (e) {
-      console.error(e);
-      if (e instanceof TaskNotFoundException) {
-        throw e;
-      }
-      throw new UnprocessableEntityException(e);
-    }
+  async remove(
+    @UserProfile("id") userId: string,
+    @Param() params: FindOneParam,
+  ) {
+    await this.tasksService.remove(params.id, userId);
   }
 }

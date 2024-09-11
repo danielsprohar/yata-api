@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -13,10 +12,11 @@ import {
   Query,
   UnprocessableEntityException,
 } from "@nestjs/common";
-import { isUUID } from "class-validator";
+import { UserProfile } from "../../auth/decorators/user-profile.decorator";
 import { FindOneParam } from "../../core/dto/find-one-param";
 import { WorkspaceNotFoundException } from "../workspaces/exception/workspace-not-found.exception";
 import { CreateProjectDto } from "./dto/create-project.dto";
+import { ProjectQueryParams } from "./dto/project-query-params.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
 import { ProjectsService } from "./projects.service";
 
@@ -26,48 +26,28 @@ export class ProjectsController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  async create(@Body() createProjectDto: CreateProjectDto) {
-    try {
-      return await this.projectsService.create(createProjectDto);
-    } catch (e) {
-      console.error(e);
-      if (e instanceof WorkspaceNotFoundException) {
-        throw new NotFoundException();
-      }
-      throw new UnprocessableEntityException(e);
-    }
+  async create(
+    @UserProfile("id") userId: string,
+    @Body() dto: CreateProjectDto,
+  ) {
+    return await this.projectsService.create(dto, userId);
   }
 
   @Get()
   findAll(
-    @Query("page") page: string,
-    @Query("pageSize") pageSize: string,
-    @Query("workspaceId") workspaceId: string,
+    @UserProfile("id") userId: string,
+    @Query() queryParams: ProjectQueryParams,
   ) {
-    if (page && Number.isNaN(Number.parseInt(page))) {
-      throw new BadRequestException("Invalid page value");
-    }
-    if (pageSize && Number.isNaN(Number.parseInt(pageSize))) {
-      throw new BadRequestException("Invalid pageSize value");
-    }
-    if (!workspaceId) {
-      throw new BadRequestException("workspaceId is required");
-    }
-    if (!isUUID(workspaceId)) {
-      throw new BadRequestException("Invalid workspaceId value");
-    }
-
-    return this.projectsService.findAll(
-      page ? Math.max(0, parseInt(page, 10)) : 0,
-      pageSize ? Math.max(1, parseInt(pageSize, 10)) : 10,
-      workspaceId,
-    );
+    return this.projectsService.findAll(queryParams, userId);
   }
 
   @Get(":id")
-  async findOne(@Param() params: FindOneParam) {
+  async findOne(
+    @UserProfile("id") userId: string,
+    @Param() params: FindOneParam,
+  ) {
     try {
-      return await this.projectsService.findOne(params.id);
+      return await this.projectsService.findOne(params.id, userId);
     } catch (e) {
       console.error(e);
       if (e instanceof WorkspaceNotFoundException) {
@@ -79,31 +59,19 @@ export class ProjectsController {
 
   @Patch(":id")
   async update(
+    @UserProfile("id") userId: string,
     @Param() params: FindOneParam,
     @Body() updateProjectDto: UpdateProjectDto,
   ) {
-    try {
-      return this.projectsService.update(params.id, updateProjectDto);
-    } catch (e) {
-      if (e instanceof WorkspaceNotFoundException) {
-        throw new NotFoundException();
-      }
-      console.error(e);
-      throw new UnprocessableEntityException(e);
-    }
+    return this.projectsService.update(params.id, userId, updateProjectDto);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param() params: FindOneParam) {
-    try {
-      await this.projectsService.remove(params.id);
-    } catch (e) {
-      if (e instanceof WorkspaceNotFoundException) {
-        throw new NotFoundException();
-      }
-      console.error(e);
-      throw new UnprocessableEntityException(e);
-    }
+  async remove(
+    @UserProfile("id") userId: string,
+    @Param() params: FindOneParam,
+  ) {
+    await this.projectsService.remove(params.id, userId);
   }
 }
