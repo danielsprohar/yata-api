@@ -158,7 +158,7 @@ export class TasksService {
   }
 
   async findOne(id: string, ownerId: string): Promise<TaskDto> {
-    const task = await this.prisma.task.findUnique({
+    const task = await this.prisma.task.findFirst({
       where: {
         id: uuidToBuffer(id),
         ownerId: uuidToBuffer(ownerId),
@@ -180,7 +180,7 @@ export class TasksService {
     ownerId: string,
     dto: UpdateTaskDto,
   ): Promise<TaskDto> {
-    const task = await this.prisma.task.findUnique({
+    const task = await this.prisma.task.findFirst({
       where: {
         id: uuidToBuffer(id),
         ownerId: uuidToBuffer(ownerId),

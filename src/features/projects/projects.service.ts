@@ -73,7 +73,7 @@ export class ProjectsService {
   }
 
   async findOne(id: string, ownerId: string): Promise<ProjectDto> {
-    const project = await this.prisma.project.findUnique({
+    const project = await this.prisma.project.findFirst({
       where: {
         id: uuidToBuffer(id),
         ownerId: uuidToBuffer(ownerId),
@@ -87,24 +87,15 @@ export class ProjectsService {
     return toProjectDto(project);
   }
 
-  async update(
-    id: string,
-    ownerId: string,
-    updateProjectDto: UpdateProjectDto,
-  ) {
-    const project = await this.prisma.project.findUnique({
+  async update(id: string, ownerId: string, dto: UpdateProjectDto) {
+    const project = await this.prisma.project.findFirst({
       where: {
         id: uuidToBuffer(id),
         ownerId: uuidToBuffer(ownerId),
       },
-      select: {
-        id: true,
-        workspaceId: true,
-        version: true,
-      },
     });
 
-    if (!project) {
+    if (project === null) {
       throw new ProjectNotFoundException();
     }
 
@@ -113,12 +104,14 @@ export class ProjectsService {
         .update({
           where: {
             id: uuidToBuffer(id),
-            ownerId: uuidToBuffer(ownerId),
           },
           data: {
-            name: updateProjectDto.name,
-            description: updateProjectDto.description,
-            status: updateProjectDto.status,
+            name: dto.name !== project.name ? dto.name : undefined,
+            description:
+              dto.description !== project.description
+                ? dto.description
+                : undefined,
+            status: dto.status !== project.status ? dto.status : undefined,
             version: project.version + 1,
           },
         })
@@ -131,15 +124,51 @@ export class ProjectsService {
   }
 
   async remove(id: string, ownerId: string) {
-    const project = await this.prisma.project.delete({
+    const project = await this.prisma.project.findFirst({
       where: {
         id: uuidToBuffer(id),
         ownerId: uuidToBuffer(ownerId),
+      },
+      select: {
+        id: true,
       },
     });
 
     if (!project) {
       throw new ProjectNotFoundException();
+    }
+
+    const deleteSections = this.prisma.section.deleteMany({
+      where: {
+        projectId: project.id,
+      },
+    });
+
+    const deleteTasks = this.prisma.task.deleteMany({
+      where: {
+        projectId: project.id,
+      },
+    });
+
+    const deleteProject = this.prisma.project.delete({
+      where: {
+        id: project.id,
+      },
+    });
+
+    try {
+      const [deleteTasksResult, deleteSectionsResult, _] =
+        await this.prisma.$transaction([
+          deleteTasks,
+          deleteSections,
+          deleteProject,
+        ]);
+      console.log(`Deleted ${deleteTasksResult.count} tasks`);
+      console.log(`Deleted ${deleteSectionsResult.count} sections`);
+      console.log(`Deleted project ${id}; owner ${ownerId}`);
+    } catch (e) {
+      console.error(e);
+      throw new UnprocessableEntityException(e);
     }
   }
 }

@@ -15,7 +15,7 @@ export class SectionsService {
 
   async create(dto: CreateSectionDto, ownerId: string): Promise<SectionDto> {
     const ownerIdBuffer = uuidToBuffer(ownerId);
-    const project = await this.prisma.project.findUnique({
+    const project = await this.prisma.project.findFirst({
       where: {
         id: uuidToBuffer(dto.projectId),
         ownerId: ownerIdBuffer,
@@ -58,7 +58,7 @@ export class SectionsService {
   }
 
   async findById(id: string, ownerId: string): Promise<SectionDto> {
-    const section = await this.prisma.section.findUnique({
+    const section = await this.prisma.section.findFirst({
       where: {
         id: uuidToBuffer(id),
         ownerId: uuidToBuffer(ownerId),
@@ -109,6 +109,16 @@ export class SectionsService {
     ownerId: string,
     dto: UpdateSectionDto,
   ): Promise<SectionDto> {
+    const sectionsCount = await this.prisma.section.count({
+      where: {
+        id: uuidToBuffer(id),
+        ownerId: uuidToBuffer(ownerId),
+      },
+    });
+
+    if (sectionsCount === 0) {
+      throw new SectionNotFoundException();
+    }
     try {
       const section = await this.prisma.section.update({
         where: {

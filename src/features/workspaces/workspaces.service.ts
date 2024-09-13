@@ -60,7 +60,7 @@ export class WorkspacesService {
   }
 
   async findOne(id: string, ownerId: string): Promise<WorkspaceDto> {
-    const workspace = await this.prisma.workspace.findUnique({
+    const workspace = await this.prisma.workspace.findFirst({
       where: {
         id: uuidToBuffer(id),
         ownerId: uuidToBuffer(ownerId),
@@ -75,12 +75,8 @@ export class WorkspacesService {
     return toWorkspaceDto(workspace);
   }
 
-  async update(
-    id: string,
-    ownerId: string,
-    updateWorkspaceDto: UpdateWorkspaceDto,
-  ) {
-    const workspace = await this.prisma.workspace.findUnique({
+  async update(id: string, ownerId: string, dto: UpdateWorkspaceDto) {
+    const workspace = await this.prisma.workspace.findFirst({
       where: {
         id: uuidToBuffer(id),
         ownerId: uuidToBuffer(ownerId),
@@ -98,9 +94,9 @@ export class WorkspacesService {
             id: uuidToBuffer(id),
           },
           data: {
-            name: updateWorkspaceDto.name,
-            description: updateWorkspaceDto.description,
-            public: updateWorkspaceDto.public,
+            name: dto.name,
+            description: dto.description,
+            public: dto.public,
             version: workspace.version + 1,
           },
         })
