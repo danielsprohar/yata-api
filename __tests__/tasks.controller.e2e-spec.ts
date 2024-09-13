@@ -1,20 +1,17 @@
-import { HttpStatus, INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { Project, Task, User } from '@prisma/client';
-import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { SignUpDto } from '../src/iam/authentication/dto';
-import { PrismaService } from '../src/prisma/prisma.service';
-import { CreateTaskDto } from '../src/tasks/dto/create-task.dto';
-import { UpdateTaskDto } from '../src/tasks/dto/update-task.dto';
-import { Priority } from '../src/tasks/enum/priority.enum';
-import { TaskAttributes } from '../src/tasks/task-attributes';
+import { HttpStatus, INestApplication, ValidationPipe } from "@nestjs/common";
+import { Test, TestingModule } from "@nestjs/testing";
+import { Priority, Project, Task, User } from "@prisma/client";
+import * as request from "supertest";
+import { AppModule } from "../src/app.module";
+import { CreateTaskDto } from "../src/features/tasks/dto/create-task.dto";
+import { UpdateTaskDto } from "../src/features/tasks/dto/update-task.dto";
+import { PrismaService } from "../src/prisma/prisma.service";
 
 function attachAccessToken(req: request.Test, accessToken: string) {
-  return req.set('Authorization', `Bearer ${accessToken}`);
+  return req.set("Authorization", `Bearer ${accessToken}`);
 }
 
-describe('TasksController', () => {
+describe("TasksController", () => {
   let app: INestApplication;
   let user: User;
   let project: Project;
@@ -38,12 +35,12 @@ describe('TasksController', () => {
 
   beforeEach(async () => {
     const signUpDto: SignUpDto = {
-      email: 'tester@example.io',
-      password: 'password',
+      email: "tester@example.io",
+      password: "password",
     };
 
     const res = await request(app.getHttpServer())
-      .post('/auth/sign-up')
+      .post("/auth/sign-up")
       .send(signUpDto);
 
     accessToken = res.body.accessToken;
@@ -52,7 +49,7 @@ describe('TasksController', () => {
     prisma = app.get(PrismaService);
     project = await prisma.project.create({
       data: {
-        name: 'Project',
+        name: "Project",
         userId: user.id,
       },
     });
@@ -62,15 +59,15 @@ describe('TasksController', () => {
     await prisma.user.deleteMany();
   });
 
-  describe('POST Create task', () => {
-    describe('Validation', () => {
-      it('should throw BadRequestException when given an invalid priority value', async () => {
+  describe("POST Create task", () => {
+    describe("Validation", () => {
+      it("should throw BadRequestException when given an invalid priority value", async () => {
         const req = request(app.getHttpServer())
           .post(`/projects/${project.id}/tasks`)
           .send({
-            name: 'Task',
+            name: "Task",
             projectId: project.id,
-            priority: 'Invalid Priority Value',
+            priority: "Invalid Priority Value",
           });
 
         const res = await attachAccessToken(req, accessToken);
@@ -78,11 +75,11 @@ describe('TasksController', () => {
         expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
       });
 
-      it('should throw BadRequestException when given an invalid date (only ISO dates are value)', async () => {
+      it("should throw BadRequestException when given an invalid date (only ISO dates are value)", async () => {
         const createTaskDto: CreateTaskDto = {
-          title: 'Task',
+          title: "Task",
           projectId: project.id,
-          dueDate: '10-10-2010',
+          dueDate: "10-10-2010",
         };
 
         const req = request(app.getHttpServer())
@@ -94,9 +91,9 @@ describe('TasksController', () => {
         expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
       });
 
-      it('should throw BadRequestException when given the Title is too long', async () => {
+      it("should throw BadRequestException when given the Title is too long", async () => {
         const createTaskDto: CreateTaskDto = {
-          title: ' '.repeat(TaskAttributes.Title.MAX_LENGTH + 1),
+          title: " ".repeat(TaskAttributes.Title.MAX_LENGTH + 1),
           projectId: project.id,
         };
 
@@ -109,11 +106,11 @@ describe('TasksController', () => {
         expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
       });
 
-      it('should throw BadRequestException when given the Content is too long', async () => {
+      it("should throw BadRequestException when given the Content is too long", async () => {
         const createTaskDto: CreateTaskDto = {
-          title: 'Task',
+          title: "Task",
           projectId: project.id,
-          content: ' '.repeat(TaskAttributes.Content.MAX_LENGTH + 1),
+          content: " ".repeat(TaskAttributes.Content.MAX_LENGTH + 1),
         };
         const req = request(app.getHttpServer())
           .post(`/tasks`)
@@ -125,9 +122,9 @@ describe('TasksController', () => {
       });
     });
 
-    it('should throw BadRequestException when the project does not exist', async () => {
+    it("should throw BadRequestException when the project does not exist", async () => {
       const createTaskDto: CreateTaskDto = {
-        title: 'Task',
+        title: "Task",
         projectId: 0,
       };
 
@@ -140,9 +137,9 @@ describe('TasksController', () => {
       expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
     });
 
-    it('should create a new Task', async () => {
+    it("should create a new Task", async () => {
       const createTaskDto: CreateTaskDto = {
-        title: 'Task',
+        title: "Task",
         projectId: project.id,
       };
 
@@ -155,22 +152,22 @@ describe('TasksController', () => {
       expect(res.status).toEqual(HttpStatus.CREATED);
     });
 
-    describe('Subtask', () => {
+    describe("Subtask", () => {
       let parentTask: Task;
 
       beforeEach(async () => {
         parentTask = await prisma.task.create({
           data: {
-            title: 'Task',
+            title: "Task",
             projectId: project.id,
             userId: user.id,
           },
         });
       });
 
-      it('should create a new Subtask', async () => {
+      it("should create a new Subtask", async () => {
         const createSubtaskDto: CreateTaskDto = {
-          title: 'Task',
+          title: "Task",
           projectId: project.id,
           parentId: parentTask.id,
         };
@@ -186,12 +183,12 @@ describe('TasksController', () => {
     });
   });
 
-  describe('GET Get task by id', () => {
+  describe("GET Get task by id", () => {
     let taskId: number;
 
     beforeEach(async () => {
       const createTaskDto: CreateTaskDto = {
-        title: 'Mock Task',
+        title: "Mock Task",
         projectId: project.id,
       };
 
@@ -204,7 +201,7 @@ describe('TasksController', () => {
       taskId = parseInt(res.body.id);
     });
 
-    it('should throw NotFoundException when a task does not exist', async () => {
+    it("should throw NotFoundException when a task does not exist", async () => {
       const taskId = 0;
       const req = request(app.getHttpServer()).get(`/tasks/${taskId}`);
 
@@ -213,7 +210,7 @@ describe('TasksController', () => {
       expect(res.status).toEqual(HttpStatus.NOT_FOUND);
     });
 
-    it('should return a Task', async () => {
+    it("should return a Task", async () => {
       const req = request(app.getHttpServer()).get(`/tasks/${taskId}`);
 
       const res = await attachAccessToken(req, accessToken);
@@ -223,12 +220,12 @@ describe('TasksController', () => {
     });
   });
 
-  describe('DELETE Delete a task', () => {
+  describe("DELETE Delete a task", () => {
     let taskId: number;
 
     beforeEach(async () => {
       const createTaskDto: CreateTaskDto = {
-        title: 'Mock Task',
+        title: "Mock Task",
         projectId: project.id,
       };
 
@@ -241,7 +238,7 @@ describe('TasksController', () => {
       taskId = parseInt(res.body.id);
     });
 
-    it('should throw NotFoundException when a task does not exist', async () => {
+    it("should throw NotFoundException when a task does not exist", async () => {
       const taskId = 0;
       const req = request(app.getHttpServer()).delete(`/tasks/${taskId}`);
 
@@ -249,7 +246,7 @@ describe('TasksController', () => {
       expect(res.status).toEqual(HttpStatus.NOT_FOUND);
     });
 
-    it('should delete a Task', async () => {
+    it("should delete a Task", async () => {
       const req = request(app.getHttpServer()).delete(`/tasks/${taskId}`);
 
       const res = await attachAccessToken(req, accessToken);
@@ -257,12 +254,12 @@ describe('TasksController', () => {
     });
   });
 
-  describe('PATCH Update task', () => {
+  describe("PATCH Update task", () => {
     let taskId: number;
 
     beforeEach(async () => {
       const createTaskDto: CreateTaskDto = {
-        title: 'Mock Task',
+        title: "Mock Task",
         projectId: project.id,
       };
 
@@ -277,7 +274,7 @@ describe('TasksController', () => {
       taskId = task.id;
     });
 
-    it('should throw NotFoundException when a task does not exist', async () => {
+    it("should throw NotFoundException when a task does not exist", async () => {
       const taskId = 0;
       const req = request(app.getHttpServer()).patch(`/tasks/${taskId}`);
 
@@ -285,9 +282,9 @@ describe('TasksController', () => {
       expect(res.status).toEqual(HttpStatus.NOT_FOUND);
     });
 
-    it('should update a Task', async () => {
+    it("should update a Task", async () => {
       const updateTaskDto: UpdateTaskDto = {
-        title: 'Updated via PATCH',
+        title: "Updated via PATCH",
         projectId: project.id,
       };
 
@@ -301,12 +298,12 @@ describe('TasksController', () => {
     });
   });
 
-  describe('POST Duplicate a task', () => {
+  describe("POST Duplicate a task", () => {
     let task: Task;
 
     beforeEach(async () => {
       const createTaskDto: CreateTaskDto = {
-        title: 'Mock Task',
+        title: "Mock Task",
         projectId: project.id,
       };
 
@@ -319,7 +316,7 @@ describe('TasksController', () => {
       });
     });
 
-    it('should throw BadRequestException when the project does not exist', async () => {
+    it("should throw BadRequestException when the project does not exist", async () => {
       const taskId = 0;
       const req = request(app.getHttpServer()).post(
         `/tasks/${taskId}/duplicate`,
@@ -329,14 +326,14 @@ describe('TasksController', () => {
       expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
     });
 
-    it('should throw NotFoundException when the task does not exist', async () => {
+    it("should throw NotFoundException when the task does not exist", async () => {
       const req = request(app.getHttpServer()).post(`/tasks/0/duplicate`);
 
       const res = await attachAccessToken(req, accessToken);
       expect(res.status).toEqual(HttpStatus.NOT_FOUND);
     });
 
-    it('should duplicate a Task', async () => {
+    it("should duplicate a Task", async () => {
       const req = request(app.getHttpServer()).post(
         `/tasks/${task.id}/duplicate`,
       );
@@ -350,7 +347,7 @@ describe('TasksController', () => {
     });
   });
 
-  describe('GET /tasks', () => {
+  describe("GET /tasks", () => {
     beforeEach(async () => {
       const date = new Date();
       date.setHours(0, 0, 0, 0);
@@ -364,28 +361,28 @@ describe('TasksController', () => {
       await prisma.task.createMany({
         data: [
           {
-            title: 'Task 1',
+            title: "Task 1",
             projectId: project.id,
             userId: user.id,
             dueDate: yesterday.toISOString(),
             priority: Priority.HIGH,
           },
           {
-            title: 'Task 2',
+            title: "Task 2",
             projectId: project.id,
             userId: user.id,
             dueDate: date.toISOString(),
             priority: Priority.MEDIUM,
           },
           {
-            title: 'Task 3',
+            title: "Task 3",
             projectId: project.id,
             userId: user.id,
             dueDate: tomorrow,
             priority: Priority.LOW,
           },
           {
-            title: 'Task 4',
+            title: "Task 4",
             projectId: project.id,
             userId: user.id,
             dueDate: tomorrow,
@@ -395,7 +392,7 @@ describe('TasksController', () => {
       });
     });
 
-    it('should throw BadRequestException when the priority is invalid', async () => {
+    it("should throw BadRequestException when the priority is invalid", async () => {
       const req = request(app.getHttpServer()).get(`/tasks?priority=-69420`);
 
       const res = await attachAccessToken(req, accessToken);
@@ -403,7 +400,7 @@ describe('TasksController', () => {
       expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
     });
 
-    it('should return a paginated list of HIGH priority tasks', async () => {
+    it("should return a paginated list of HIGH priority tasks", async () => {
       const req = request(app.getHttpServer()).get(
         `/tasks?priority=${Priority.HIGH}`,
       );
@@ -416,7 +413,7 @@ describe('TasksController', () => {
       expect(res.body.data[0].priority).toEqual(Priority.HIGH);
     });
 
-    it('should return a paginated list of MEDIUM priority tasks', async () => {
+    it("should return a paginated list of MEDIUM priority tasks", async () => {
       const req = request(app.getHttpServer()).get(
         `/tasks?priority=${Priority.MEDIUM}`,
       );
@@ -429,7 +426,7 @@ describe('TasksController', () => {
       expect(res.body.data[0].priority).toEqual(Priority.MEDIUM);
     });
 
-    it('should return a paginated list of LOW priority tasks', async () => {
+    it("should return a paginated list of LOW priority tasks", async () => {
       const req = request(app.getHttpServer()).get(
         `/tasks?priority=${Priority.LOW}`,
       );
@@ -442,7 +439,7 @@ describe('TasksController', () => {
       expect(res.body.data[0].priority).toEqual(Priority.LOW);
     });
 
-    it('should return a paginated list of tasks', async () => {
+    it("should return a paginated list of tasks", async () => {
       const req = request(app.getHttpServer()).get(`/tasks`);
       const res = await attachAccessToken(req, accessToken);
 
@@ -451,7 +448,7 @@ describe('TasksController', () => {
       expect(res.body.data.length).toEqual(4);
     });
 
-    it('should return a paginated list of tasks sorted by due date', async () => {
+    it("should return a paginated list of tasks sorted by due date", async () => {
       const req = request(app.getHttpServer()).get(
         `/tasks?orderBy=dueDate&dir=asc`,
       );
@@ -476,7 +473,7 @@ describe('TasksController', () => {
       );
     });
 
-    it('should return a paginated list of tasks sorted by priority', async () => {
+    it("should return a paginated list of tasks sorted by priority", async () => {
       const req = request(app.getHttpServer()).get(
         `/tasks?orderBy=priority&dir=desc`,
       );
@@ -491,20 +488,20 @@ describe('TasksController', () => {
       expect(res.body.data[3].priority).toEqual(Priority.NONE);
     });
 
-    it('should return a paginated list of tasks sorted by title', async () => {
+    it("should return a paginated list of tasks sorted by title", async () => {
       const req = request(app.getHttpServer()).get(`/tasks?orderBy=title`);
       const res = await attachAccessToken(req, accessToken);
 
       expect(res.status).toEqual(HttpStatus.OK);
       expect(res.body).toBeDefined();
       expect(res.body.data.length).toEqual(4);
-      expect(res.body.data[0].title).toEqual('Task 1');
-      expect(res.body.data[1].title).toEqual('Task 2');
-      expect(res.body.data[2].title).toEqual('Task 3');
-      expect(res.body.data[3].title).toEqual('Task 4');
+      expect(res.body.data[0].title).toEqual("Task 1");
+      expect(res.body.data[1].title).toEqual("Task 2");
+      expect(res.body.data[2].title).toEqual("Task 3");
+      expect(res.body.data[3].title).toEqual("Task 4");
     });
 
-    it('should return a paginated list of tasks sorted by title in descending order', async () => {
+    it("should return a paginated list of tasks sorted by title in descending order", async () => {
       const req = request(app.getHttpServer()).get(
         `/tasks?orderBy=title&dir=desc`,
       );
@@ -513,10 +510,10 @@ describe('TasksController', () => {
       expect(res.status).toEqual(HttpStatus.OK);
       expect(res.body).toBeDefined();
       expect(res.body.data.length).toEqual(4);
-      expect(res.body.data[0].title).toEqual('Task 4');
-      expect(res.body.data[1].title).toEqual('Task 3');
-      expect(res.body.data[2].title).toEqual('Task 2');
-      expect(res.body.data[3].title).toEqual('Task 1');
+      expect(res.body.data[0].title).toEqual("Task 4");
+      expect(res.body.data[1].title).toEqual("Task 3");
+      expect(res.body.data[2].title).toEqual("Task 2");
+      expect(res.body.data[3].title).toEqual("Task 1");
     });
 
     it("should return a paginated list of today's tasks", async () => {
@@ -537,7 +534,7 @@ describe('TasksController', () => {
       expect(res.body.data.length).toEqual(1);
     });
 
-    it('should return a paginated list of tasks with a due date in the future', async () => {
+    it("should return a paginated list of tasks with a due date in the future", async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -555,7 +552,7 @@ describe('TasksController', () => {
       expect(res.body.data.length).toEqual(2);
     });
 
-    it('should return a paginated list of tasks with a due date in the past', async () => {
+    it("should return a paginated list of tasks with a due date in the past", async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -573,7 +570,7 @@ describe('TasksController', () => {
       expect(res.body.data.length).toEqual(1);
     });
 
-    it('should return a paginated list of tasks with a due date in the past and a priority of HIGH', async () => {
+    it("should return a paginated list of tasks with a due date in the past and a priority of HIGH", async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -592,7 +589,7 @@ describe('TasksController', () => {
       expect(res.body.data[0].priority).toEqual(Priority.HIGH);
     });
 
-    it('should return a paginated list of tasks with a due date in the past and a priority of MEDIUM', async () => {
+    it("should return a paginated list of tasks with a due date in the past and a priority of MEDIUM", async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 

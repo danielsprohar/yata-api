@@ -25,11 +25,11 @@ export class TasksController {
   }
 
   @Get()
-  findAll(
+  fetch(
     @UserProfile("id") userId: string,
     @Query() queryParams: TaskQueryParams,
   ) {
-    return this.tasksService.findAll(queryParams, userId);
+    return this.tasksService.fetch(queryParams, userId);
   }
 
   @Get(":id")

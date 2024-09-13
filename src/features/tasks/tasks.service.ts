@@ -9,6 +9,7 @@ import { CreateTaskDto } from "./dto/create-task.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
 import { TaskDto, toTaskDto } from "./dto/task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
+import { TaskPriority } from "./enums/task-priority.enum";
 import { TaskNotFoundException } from "./exception/task-not-found.expection";
 
 @Injectable()
@@ -62,7 +63,7 @@ export class TasksService {
     }
   }
 
-  async findAll(
+  async fetch(
     params: TaskQueryParams,
     ownerId: string,
   ): Promise<PageResponse<TaskDto>> {
@@ -70,13 +71,13 @@ export class TasksService {
     const pageSize = Math.min(+params.pageSize || 10, 50);
     const {
       status,
+      priority,
       from,
       to,
       projectId,
       workspaceId,
       dir,
       parentId,
-      priority,
     } = params;
 
     const filters: Prisma.TaskWhereInput[] = [
@@ -123,12 +124,16 @@ export class TasksService {
     }
     if (priority) {
       filters.push({
-        priority: priority,
+        priority: {
+          in: priority.split(",") as TaskPriority[],
+        },
       });
     }
     if (status) {
       filters.push({
-        status: status,
+        status: {
+          in: status.split(",") as TaskStatus[],
+        },
       });
     }
 
