@@ -6,10 +6,10 @@ services:
       - MYSQL_ROOT_PASSWORD=password
       - MYSQL_DATABASE=yata
       - MYSQL_USER=yata
-      - MYSQL_PASSWORD=password
+      - MYSQL_PASSWORD=password123
       - MYSQL_PORT=3306
     ports:
-      - '3305:3306'
+      - '3306:3306'
     volumes:
       - db-data:/var/lib/mysql
     networks:
@@ -30,26 +30,26 @@ services:
     image: quay.io/keycloak/keycloak:25.0.2
     container_name: yata-keycloak
     ports:
-      - "8888:8080"
+      - "8080:8080"
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: password
       KC_DB: postgres
       KC_DB_USERNAME: kcUser
       KC_DB_PASSWORD: password
-      KC_DB_URL_HOST: postgres
+      KC_DB_URL_HOST: keycloak-db
     command:
       - start-dev
     volumes:
       - keycloak-data:/data/keycloak
     depends_on:
-      postgres:
+      keycloak-db:
         condition: service_started
     networks:
       - backend
       - keycloak-network
 
-  postgres:
+  keycloak-db:
     image: postgres:16-alpine
     container_name: yata-keycloak-postgres
     ports:
