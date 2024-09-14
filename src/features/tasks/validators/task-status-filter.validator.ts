@@ -4,6 +4,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from "class-validator";
+import { TaskStatusUtils } from "../enums/task-status.enum";
 
 @ValidatorConstraint({ name: "taskPriorityFilter", async: false })
 export class IsTaskStatusFilterConstraint
@@ -12,7 +13,23 @@ export class IsTaskStatusFilterConstraint
   private readonly validValues = Object.values(TaskStatus);
 
   validate(value: any) {
-    return this.validValues.includes(value);
+    if (typeof value !== "string") {
+      return false;
+    }
+
+    const tokens = value.split(",");
+    try {
+      for (const token of tokens) {
+        if (!this.validValues.includes(TaskStatusUtils.fromString(token))) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   }
 
   defaultMessage() {
