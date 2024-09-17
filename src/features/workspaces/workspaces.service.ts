@@ -39,16 +39,22 @@ export class WorkspacesService {
   ): Promise<PageResponse<WorkspaceDto>> {
     const page = Math.max(+params.page || 0, 0);
     const pageSize = Math.min(+params.pageSize || 10, 50);
+    const whereClause = {
+      ownerId: uuidToBuffer(ownerId),
+    };
 
     const [data, count] = await Promise.all([
       this.prisma.workspace.findMany({
         skip: page * pageSize,
         take: pageSize,
-        where: {
-          ownerId: uuidToBuffer(ownerId),
+        where: whereClause,
+        orderBy: {
+          name: "asc",
         },
       }),
-      this.prisma.workspace.count(),
+      this.prisma.workspace.count({
+        where: whereClause,
+      }),
     ]);
 
     return {
