@@ -82,9 +82,10 @@ export class WorkspacesService {
   }
 
   async update(id: string, ownerId: string, dto: UpdateWorkspaceDto) {
+    const workspaceIdBuffer = uuidToBuffer(id);
     const workspace = await this.prisma.workspace.findFirst({
       where: {
-        id: uuidToBuffer(id),
+        id: workspaceIdBuffer,
         ownerId: uuidToBuffer(ownerId),
       },
     });
@@ -97,7 +98,7 @@ export class WorkspacesService {
       return this.prisma.workspace
         .update({
           where: {
-            id: uuidToBuffer(id),
+            id: workspaceIdBuffer,
           },
           data: {
             name: dto.name,
