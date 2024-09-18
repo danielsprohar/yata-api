@@ -10,14 +10,19 @@ import {
 } from "class-validator";
 
 export class CreateTaskDto {
-  @IsOptional()
-  ownerId?: string;
-
   @IsUUID()
   workspaceId: string;
 
   @IsUUID()
   projectId: string;
+
+  @IsString()
+  @MaxLength(255)
+  title: string;
+
+  // ================================
+  // Optional properties
+  // ================================
 
   @IsOptional()
   @IsUUID()
@@ -27,9 +32,8 @@ export class CreateTaskDto {
   @IsUUID()
   sectionId?: string;
 
-  @IsString()
-  @MaxLength(255)
-  title: string;
+  @IsOptional()
+  ownerId?: string;
 
   @IsOptional()
   @IsString()

@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -20,6 +22,7 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
+  @HttpCode(HttpStatus.OK)
   async create(@UserProfile("id") userId: string, @Body() dto: CreateTaskDto) {
     return await this.tasksService.create(dto, userId);
   }

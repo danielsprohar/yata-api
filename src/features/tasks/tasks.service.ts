@@ -6,6 +6,7 @@ import { generatePrimaryKey, uuidToBuffer } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
 import { CreateTaskDto } from "./dto/create-task.dto";
+import { toTagDto } from "./dto/tag.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
 import { TaskDto, toTaskDto } from "./dto/task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
@@ -17,6 +18,10 @@ export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateTaskDto, ownerId: string): Promise<TaskDto> {
+    if (dto.tags && dto.tags.length > 0) {
+      return this.createTaskWithTags(ownerId, dto);
+    }
+
     const ownerIdBuffer = uuidToBuffer(ownerId);
 
     if (dto.parentId) {
@@ -50,6 +55,76 @@ export class TasksService {
       });
 
       return toTaskDto(task);
+    } catch (e) {
+      console.error(e);
+      // @see https://www.prisma.io/docs/orm/reference/error-reference#p2003
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === "P2003") {
+          throw new ProjectNotFoundException();
+        }
+      }
+
+      throw new UnprocessableEntityException("Could not create the task");
+    }
+  }
+
+  async createTaskWithTags(ownerId: string, dto: CreateTaskDto) {
+    const ownerIdBuffer = uuidToBuffer(ownerId);
+    if (dto.parentId) {
+      const parentTaskCount = await this.prisma.task.count({
+        where: {
+          id: uuidToBuffer(dto.parentId),
+          ownerId: ownerIdBuffer,
+        },
+      });
+
+      if (parentTaskCount === 0) {
+        throw new TaskNotFoundException();
+      }
+    }
+
+    // const existingTags = await this.prisma.tag.findMany({
+    //   where: {
+    //     ownerId: ownerIdBuffer,
+    //     name: {
+    //       in: dto.tags,
+    //     },
+    //   },
+    // });
+
+    const tags: string[] = dto.tags || [];
+
+    try {
+      const task = await this.prisma.task.create({
+        include: {
+          tags: true,
+        },
+        data: {
+          id: generatePrimaryKey(),
+          title: dto.title,
+          description: dto.description,
+          status: dto.status,
+          dueDate: dto.dueDate,
+          priority: dto.priority,
+          workspaceId: uuidToBuffer(dto.workspaceId),
+          ownerId: ownerIdBuffer,
+          projectId: uuidToBuffer(dto.projectId),
+          sectionId: dto.sectionId ? uuidToBuffer(dto.sectionId) : undefined,
+          parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
+          tags: {
+            create: tags.map((tag) => ({
+              name: tag,
+              ownerId: ownerIdBuffer,
+              id: generatePrimaryKey(),
+            })),
+          },
+        },
+      });
+
+      return {
+        ...toTaskDto(task),
+        tags: task.tags.map((tag) => toTagDto(tag)),
+      };
     } catch (e) {
       console.error(e);
       // @see https://www.prisma.io/docs/orm/reference/error-reference#p2003
@@ -148,6 +223,10 @@ export class TasksService {
         orderBy: {
           createdAt: dir === "asc" ? "asc" : "desc",
         },
+        include: {
+          subtasks: true,
+          tags: true,
+        },
       }),
       this.prisma.task.count({
         where: whereClause,
@@ -170,6 +249,7 @@ export class TasksService {
       },
       include: {
         subtasks: true,
+        tags: true,
       },
     });
 

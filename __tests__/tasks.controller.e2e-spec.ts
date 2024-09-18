@@ -1,25 +1,71 @@
-import { HttpStatus, INestApplication, ValidationPipe } from "@nestjs/common";
+import {
+  CallHandler,
+  ExecutionContext,
+  HttpStatus,
+  INestApplication,
+  Injectable,
+  NestInterceptor,
+  ValidationPipe,
+} from "@nestjs/common";
+import { APP_INTERCEPTOR } from "@nestjs/core";
 import { Test, TestingModule } from "@nestjs/testing";
+import { Project, Tag, Workspace } from "@prisma/client";
+import { Observable } from "rxjs";
 import * as request from "supertest";
 import { v4 as uuid } from "uuid";
 import { NoAuthAppTestModule } from "../src/app.module";
-import { bufferToUuid, uuidToBuffer } from "../src/core/utils/uuid.util";
+import { JwtAuthGuard } from "../src/auth/guards/jwt-auth.guard";
+import {
+  bufferToUuid,
+  generatePrimaryKey,
+  uuidToBuffer,
+} from "../src/core/utils/uuid.util";
+import { CreateTaskDto } from "../src/features/tasks/dto/create-task.dto";
 import { PrismaService } from "../src/prisma/prisma.service";
 
-// function attachAccessToken(req: request.Test, accessToken: string) {
-//   return req.set("Authorization", `Bearer ${accessToken}`);
-// }
+class MockAuthGuard {
+  validate() {
+    return true;
+  }
+}
+
+const ownerId = uuid();
+const ownerIdBuffer = uuidToBuffer(ownerId);
+
+@Injectable()
+export class AddUserInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const request = context.switchToHttp().getRequest();
+    request.user = {
+      id: ownerId,
+      username: "testuser",
+    };
+
+    return next.handle();
+  }
+}
 
 describe("TasksController", () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let workspaceId: Buffer;
-  const ownerId = uuidToBuffer(uuid());
+
+  let workspace: Workspace;
+  let project: Project;
+  let tag: Tag;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [NoAuthAppTestModule],
-    }).compile();
+      providers: [
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: AddUserInterceptor,
+        },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useClass(MockAuthGuard)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
@@ -28,28 +74,58 @@ describe("TasksController", () => {
         transform: true,
       }),
     );
-    
+
     await app.init();
   });
 
   beforeEach(async () => {
-    const workspace = await prisma.workspace.create({
+    prisma = app.get(PrismaService);
+
+    workspace = await prisma.workspace.create({
       data: {
         name: "YATA",
         id: uuidToBuffer(uuid()),
-        ownerId,
+        ownerId: ownerIdBuffer,
       },
     });
 
-    workspaceId = workspace.id;
+    project = await prisma.project.create({
+      data: {
+        id: generatePrimaryKey(),
+        name: "ng_spa",
+        workspaceId: workspace.id,
+        ownerId: ownerIdBuffer,
+      },
+    });
+
+    tag = await prisma.tag.create({
+      data: {
+        id: generatePrimaryKey(),
+        name: "tag1",
+        ownerId: ownerIdBuffer,
+      },
+    });
   });
 
   afterEach(async () => {
-    // await prisma.task.deleteMany();
-    // await prisma.project.deleteMany();
+    await prisma.tag.deleteMany({
+      where: {
+        ownerId: ownerIdBuffer,
+      }
+    });
+    await prisma.task.deleteMany({
+      where: {
+        ownerId: ownerIdBuffer,
+      },
+    });
+    await prisma.project.deleteMany({
+      where: {
+        id: project.id,
+      },
+    });
     await prisma.workspace.deleteMany({
       where: {
-        id: workspaceId,
+        id: workspace.id,
       },
     });
   });
@@ -59,13 +135,23 @@ describe("TasksController", () => {
   });
 
   describe("POST Create task", () => {
-    // Fetch the workspace
-    it('should fetch', () => {
-      request(app.getHttpServer())
-        .get(`/workspaces/${bufferToUuid(workspaceId)}`)
-        .expect(HttpStatus.OK);
+    it("should create a task with tags", async () => {
+      const dto: CreateTaskDto = {
+        projectId: bufferToUuid(project.id),
+        workspaceId: bufferToUuid(workspace.id),
+        ownerId: bufferToUuid(ownerIdBuffer),
+        title: "Task",
+        tags: [tag.name, "tag"],
+      };
 
-    }) 
+      const res = await request(app.getHttpServer()).post(`/tasks`).send(dto);
+
+      console.log("res.body", res.body);
+
+      expect(res.status).toEqual(HttpStatus.OK);
+      expect(res.body).toBeDefined();
+      expect(res.body.title).toEqual(dto.title);
+    });
   });
 
   // describe("POST Create task", () => {
