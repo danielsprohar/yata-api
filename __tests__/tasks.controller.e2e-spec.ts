@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { Test, TestingModule } from "@nestjs/testing";
-import { Project, Tag, Workspace } from "@prisma/client";
+import { Project, Tag, Task, TaskStatus, Workspace } from "@prisma/client";
 import { Observable } from "rxjs";
 import * as request from "supertest";
 import { v4 as uuid } from "uuid";
@@ -21,6 +21,8 @@ import {
   uuidToBuffer,
 } from "../src/core/utils/uuid.util";
 import { CreateTaskDto } from "../src/features/tasks/dto/create-task.dto";
+import { UpdateTaskDto } from "../src/features/tasks/dto/update-task.dto";
+import { TaskPriority } from "../src/features/tasks/enums/task-priority.enum";
 import { PrismaService } from "../src/prisma/prisma.service";
 
 class MockAuthGuard {
@@ -67,7 +69,10 @@ describe("TasksController", () => {
       .useClass(MockAuthGuard)
       .compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication({
+      logger: ["log"],
+      forceCloseConnections: true,
+    });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true, // strip props that are not defined in the DTO class
@@ -120,21 +125,344 @@ describe("TasksController", () => {
     });
     await prisma.project.deleteMany({
       where: {
-        id: project.id,
+        ownerId: ownerIdBuffer,
       },
     });
     await prisma.workspace.deleteMany({
       where: {
-        id: workspace.id,
+        ownerId: ownerIdBuffer,
       },
     });
+
+    await prisma.$disconnect();
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  describe("POST Create task", () => {
+  describe("PATCH /tasks/:taskId -> Update task", () => {
+    let task: Task;
+
+    beforeEach(async () => {
+      task = await prisma.task.create({
+        data: {
+          id: generatePrimaryKey(),
+          title: "Task",
+          workspaceId: workspace.id,
+          projectId: project.id,
+          ownerId: ownerIdBuffer,
+        },
+      });
+    });
+
+    it("should update a task", async () => {
+      const dto: UpdateTaskDto = {
+        title: "Updated Task",
+      };
+
+      const res = await request(app.getHttpServer())
+        .patch("/tasks/" + bufferToUuid(task.id))
+        .send(dto);
+
+      expect(res.status).toEqual(HttpStatus.OK);
+      expect(res.body.title).toEqual(dto.title);
+    });
+  });
+
+  describe("DELETE /tasks/:taskId -> Delete task", () => {
+    let task: Task;
+
+    beforeEach(async () => {
+      task = await prisma.task.create({
+        data: {
+          id: generatePrimaryKey(),
+          title: "Task",
+          workspaceId: workspace.id,
+          projectId: project.id,
+          ownerId: ownerIdBuffer,
+        },
+      });
+    });
+
+    it("should delete a task", async () => {
+      const res = await request(app.getHttpServer()).delete(
+        "/tasks/" + bufferToUuid(task.id),
+      );
+
+      expect(res.status).toEqual(HttpStatus.OK);
+    });
+
+    it("should return a 404 when the task does not exist", async () => {
+      const res = await request(app.getHttpServer()).delete("/tasks/" + uuid());
+
+      expect(res.status).toEqual(HttpStatus.NOT_FOUND);
+    });
+  });
+
+  describe("GET /tasks/:taskId -> Find by ID", () => {
+    let task: Task;
+
+    beforeEach(async () => {
+      task = await prisma.task.create({
+        data: {
+          id: generatePrimaryKey(),
+          title: "Task",
+          workspaceId: workspace.id,
+          projectId: project.id,
+          ownerId: ownerIdBuffer,
+        },
+      });
+    });
+
+    it("should return a task", async () => {
+      const res = await request(app.getHttpServer()).get(
+        "/tasks/" + bufferToUuid(task.id),
+      );
+
+      expect(res.status).toEqual(HttpStatus.OK);
+      expect(res.body).toBeDefined();
+      expect(res.body.title).toEqual(task.title);
+    });
+
+    it("should return a 404 when the task does not exist", async () => {
+      const res = await request(app.getHttpServer()).get("/tasks/" + uuid());
+
+      expect(res.status).toEqual(HttpStatus.NOT_FOUND);
+    });
+  });
+
+  describe("GET /tasks -> Fetch/filter tasks", () => {
+    const today = new Date(new Date().setHours(0, 0, 0, 0));
+    let tasks: Task[];
+
+    beforeEach(async () => {
+      await prisma.task.createMany({
+        data: [
+          {
+            id: generatePrimaryKey(),
+            title: "Task 1",
+            workspaceId: workspace.id,
+            projectId: project.id,
+            ownerId: ownerIdBuffer,
+            priority: TaskPriority.HIGH,
+            dueDate: new Date(new Date(today).setDate(1)),
+          },
+          {
+            id: generatePrimaryKey(),
+            title: "Task 2",
+            workspaceId: workspace.id,
+            projectId: project.id,
+            ownerId: ownerIdBuffer,
+            priority: TaskPriority.MEDIUM,
+            dueDate: new Date(new Date(today).setDate(15)),
+          },
+          {
+            id: generatePrimaryKey(),
+            title: "Task 3",
+            workspaceId: workspace.id,
+            projectId: project.id,
+            ownerId: ownerIdBuffer,
+            priority: TaskPriority.LOW,
+            status: TaskStatus.COMPLETED,
+            dueDate: new Date(new Date(today).setDate(28)),
+          },
+          {
+            id: generatePrimaryKey(),
+            title: "Task 4",
+            workspaceId: workspace.id,
+            projectId: project.id,
+            ownerId: ownerIdBuffer,
+            priority: TaskPriority.HIGH,
+            status: TaskStatus.IN_PROGRESS,
+          },
+        ],
+      });
+
+      tasks = await prisma.task.findMany({
+        where: {
+          ownerId: ownerIdBuffer,
+        },
+      });
+    });
+
+    describe("Filter by Priority", () => {
+      it("should return tasks filtered by HIGH priority", async () => {
+        const expectedCount = tasks.filter(
+          (task) => task.priority === TaskPriority.HIGH,
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          "/tasks?priority=HIGH",
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+
+      it("should return tasks filtered by MEDIUM priority", async () => {
+        const expectedCount = tasks.filter(
+          (task) => task.priority === TaskPriority.MEDIUM,
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          "/tasks?priority=MEDIUM",
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+
+      it("should return tasks filtered by LOW priority", async () => {
+        const expectedCount = tasks.filter(
+          (task) => task.priority === TaskPriority.LOW,
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          "/tasks?priority=LOW",
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+
+      it("should return tasks filtered by NONE priority", async () => {
+        const expectedCount = tasks.filter(
+          (task) => task.priority === TaskPriority.NONE,
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          "/tasks?priority=NONE",
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+
+      it("should return tasks filtered by NONE,HIGH priority", async () => {
+        const expectedCount = tasks.filter(
+          (task) =>
+            task.priority === TaskPriority.NONE ||
+            task.priority === TaskPriority.HIGH,
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          "/tasks?priority=NONE,HIGH",
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+    });
+
+    describe("Filter by Status", () => {
+      it("should return tasks filtered by COMPLETED status", async () => {
+        const expectedCount = tasks.filter(
+          (task) => task.status === TaskStatus.COMPLETED,
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          "/tasks?status=COMPLETED",
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+
+      it("should return tasks filtered by IN_PROGRESS status", async () => {
+        const expectedCount = tasks.filter(
+          (task) => task.status === TaskStatus.IN_PROGRESS,
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          "/tasks?status=IN_PROGRESS",
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+
+      it("should return tasks filtered by NOT_STARTED status", async () => {
+        const expectedCount = tasks.filter(
+          (task) => task.status === TaskStatus.NOT_STARTED,
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          "/tasks?status=NOT_STARTED",
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+
+      it("should return tasks filtered by NOT_STARTED,IN_PROGRESS status", async () => {
+        const expectedCount = tasks.filter(
+          (task) =>
+            task.status === TaskStatus.NOT_STARTED ||
+            task.status === TaskStatus.IN_PROGRESS,
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          "/tasks?status=NOT_STARTED,IN_PROGRESS",
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+    });
+
+    describe("Filter by Due Date", () => {
+      it("should return tasks due today", async () => {
+        const expectedCount = tasks.filter(
+          (task) =>
+            task.dueDate &&
+            task.dueDate.getFullYear() === today.getFullYear() &&
+            task.dueDate.getMonth() === today.getMonth() &&
+            task.dueDate.getDate() === today.getDate(),
+        ).length;
+
+        const from = new Date(today).toISOString();
+        const to = new Date(
+          new Date(today).setDate(today.getDate() + 1),
+        ).toISOString();
+
+        const res = await request(app.getHttpServer()).get(
+          `/tasks?from=${from}&to=${to}`,
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+
+      it("should return tasks due before today", async () => {
+        const expectedCount = tasks.filter(
+          (task) => task.dueDate && task.dueDate.getTime() < today.getTime(),
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          `/tasks?lt=${today.toISOString()}`,
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+
+      it("should return tasks due after today", async () => {
+        const expectedCount = tasks.filter(
+          (task) => task.dueDate && task.dueDate.getTime() > today.getTime(),
+        ).length;
+
+        const res = await request(app.getHttpServer()).get(
+          `/tasks?gt=${today.toISOString()}`,
+        );
+
+        expect(res.status).toEqual(HttpStatus.OK);
+        expect(res.body.count).toEqual(expectedCount);
+      });
+    });
+  });
+
+  describe("POST /tasks -> Create task", () => {
     it("should create a task with tags", async () => {
       const tagNames = [tag.name, "tag"];
       const dto: CreateTaskDto = {
@@ -158,572 +486,326 @@ describe("TasksController", () => {
         expect(actualTagNames).toContain(tag);
       }
     });
+
+    describe("Validation", () => {
+      describe("workspaceId", () => {
+        it('should throw BadRequestException when "workspaceId" is not a valid UUID', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: "Invalid UUID",
+            projectId: bufferToUuid(project.id),
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: "Task",
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+
+        it('should throw NotFoundException when "workspaceId" does not exist', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: uuid(),
+            projectId: bufferToUuid(project.id),
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: "Task",
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.NOT_FOUND);
+        });
+      });
+
+      describe("projectId", () => {
+        it('should throw BadRequestException when "projectId" is not a valid UUID', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: bufferToUuid(workspace.id),
+            projectId: "Invalid UUID",
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: "Task",
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+
+        it('should throw NotFoundException when "projectId" does not exist', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: bufferToUuid(workspace.id),
+            projectId: uuid(),
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: "Task",
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.NOT_FOUND);
+        });
+      });
+
+      describe("ownerId", () => {
+        it('should throw BadRequestException when "ownerId" is not a valid UUID', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: bufferToUuid(workspace.id),
+            projectId: bufferToUuid(project.id),
+            ownerId: "Invalid UUID",
+            title: "Task",
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+      });
+
+      describe("parentId", () => {
+        it('should throw BadRequestException when "parentId" is not a valid UUID', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: bufferToUuid(workspace.id),
+            projectId: bufferToUuid(project.id),
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: "Task",
+            parentId: "Invalid UUID",
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+
+        it('should throw NotFoundException when "parentId" does not exist', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: bufferToUuid(workspace.id),
+            projectId: bufferToUuid(project.id),
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: "Task",
+            parentId: uuid(),
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.NOT_FOUND);
+        });
+      });
+
+      describe("sectionId", () => {
+        it('should throw BadRequestException when "sectionId" is not a valid UUID', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: bufferToUuid(workspace.id),
+            projectId: bufferToUuid(project.id),
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: "Task",
+            sectionId: "Invalid UUID",
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+
+        it('should throw NotFoundException when "sectionId" does not exist', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: bufferToUuid(workspace.id),
+            projectId: bufferToUuid(project.id),
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: "Task",
+            sectionId: uuid(),
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.NOT_FOUND);
+        });
+      });
+
+      describe("title", () => {
+        it('should throw BadRequestException when "title" is not a string', async () => {
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send({
+              workspaceId: bufferToUuid(workspace.id),
+              projectId: bufferToUuid(project.id),
+              ownerId: bufferToUuid(ownerIdBuffer),
+              title: 123,
+            });
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+
+        it('should throw BadRequestException when "title" is too long', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: bufferToUuid(workspace.id),
+            projectId: bufferToUuid(project.id),
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: " ".repeat(256),
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+      });
+
+      describe("description", () => {
+        it('should throw BadRequestException when "description" is not a string', async () => {
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send({
+              workspaceId: bufferToUuid(workspace.id),
+              projectId: bufferToUuid(project.id),
+              ownerId: bufferToUuid(ownerIdBuffer),
+              title: "Task",
+              description: 123,
+            });
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+
+        it('should throw BadRequestException when "description" is too long', async () => {
+          const dto: CreateTaskDto = {
+            workspaceId: bufferToUuid(workspace.id),
+            projectId: bufferToUuid(project.id),
+            ownerId: bufferToUuid(ownerIdBuffer),
+            title: "Task",
+            description: " ".repeat(256),
+          };
+
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send(dto);
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+      });
+
+      describe("status", () => {
+        it('should throw BadRequestException when "status" is not a valid TaskStatus', async () => {
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send({
+              workspaceId: bufferToUuid(workspace.id),
+              projectId: bufferToUuid(project.id),
+              ownerId: bufferToUuid(ownerIdBuffer),
+              title: "Task",
+              status: "Invalid Status",
+            });
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+      });
+
+      describe("dueDate", () => {
+        it('should throw BadRequestException when "dueDate" is not a valid ISO8601 date', async () => {
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send({
+              workspaceId: bufferToUuid(workspace.id),
+              projectId: bufferToUuid(project.id),
+              ownerId: bufferToUuid(ownerIdBuffer),
+              title: "Task",
+              dueDate: "Invalid Date",
+            });
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+      });
+
+      describe("priority", () => {
+        it('should throw BadRequestException when "priority" is not a valid Priority', async () => {
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send({
+              workspaceId: bufferToUuid(workspace.id),
+              projectId: bufferToUuid(project.id),
+              ownerId: bufferToUuid(ownerIdBuffer),
+              title: "Task",
+              priority: "Invalid Priority",
+            });
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+      });
+
+      describe("tags", () => {
+        it('should throw BadRequestException when "tags" is not an array of strings', async () => {
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send({
+              workspaceId: bufferToUuid(workspace.id),
+              projectId: bufferToUuid(project.id),
+              ownerId: bufferToUuid(ownerIdBuffer),
+              title: "Task",
+              tags: [123],
+            });
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+
+        it('should throw BadRequestException when a "tag" is too long', async () => {
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send({
+              workspaceId: bufferToUuid(workspace.id),
+              projectId: bufferToUuid(project.id),
+              ownerId: bufferToUuid(ownerIdBuffer),
+              title: "Task",
+              tags: ["a".repeat(17), "tag2"],
+            });
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+
+        it('should throw NotFoundException when a "tag" is not a string', async () => {
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send({
+              workspaceId: bufferToUuid(workspace.id),
+              projectId: bufferToUuid(project.id),
+              ownerId: bufferToUuid(ownerIdBuffer),
+              title: "Task",
+              tags: ["tag1", 123],
+            });
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+      });
+
+      describe("rrule", () => {
+        it('should throw BadRequestException when "rrule" is not a string', async () => {
+          const res = await request(app.getHttpServer())
+            .post(`/tasks`)
+            .send({
+              workspaceId: bufferToUuid(workspace.id),
+              projectId: bufferToUuid(project.id),
+              ownerId: bufferToUuid(ownerIdBuffer),
+              title: "Task",
+              rrule: 123,
+            });
+
+          expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+        });
+      });
+    });
   });
-
-  // describe("POST Create task", () => {
-  //   describe("Validation", () => {
-  //     it("should throw BadRequestException when given an invalid priority value", async () => {
-  //       const req = request(app.getHttpServer())
-  //         .post(`/projects/${project.id}/tasks`)
-  //         .send({
-  //           name: "Task",
-  //           projectId: project.id,
-  //           priority: "Invalid Priority Value",
-  //         });
-
-  //       const res = await attachAccessToken(req, accessToken);
-
-  //       expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
-  //     });
-
-  //     it("should throw BadRequestException when given an invalid date (only ISO dates are value)", async () => {
-  //       const createTaskDto: CreateTaskDto = {
-  //         title: "Task",
-  //         projectId: project.id,
-  //         dueDate: "10-10-2010",
-  //       };
-
-  //       const req = request(app.getHttpServer())
-  //         .post(`/tasks`)
-  //         .send(createTaskDto);
-
-  //       const res = await attachAccessToken(req, accessToken);
-
-  //       expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
-  //     });
-
-  //     it("should throw BadRequestException when given the Title is too long", async () => {
-  //       const createTaskDto: CreateTaskDto = {
-  //         title: " ".repeat(TaskAttributes.Title.MAX_LENGTH + 1),
-  //         projectId: project.id,
-  //       };
-
-  //       const req = request(app.getHttpServer())
-  //         .post(`/tasks`)
-  //         .send(createTaskDto);
-
-  //       const res = await attachAccessToken(req, accessToken);
-
-  //       expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
-  //     });
-
-  //     it("should throw BadRequestException when given the Content is too long", async () => {
-  //       const createTaskDto: CreateTaskDto = {
-  //         title: "Task",
-  //         projectId: project.id,
-  //         content: " ".repeat(TaskAttributes.Content.MAX_LENGTH + 1),
-  //       };
-  //       const req = request(app.getHttpServer())
-  //         .post(`/tasks`)
-  //         .send(createTaskDto);
-
-  //       const res = await attachAccessToken(req, accessToken);
-
-  //       expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
-  //     });
-  //   });
-
-  //   it("should throw BadRequestException when the project does not exist", async () => {
-  //     const createTaskDto: CreateTaskDto = {
-  //       title: "Task",
-  //       projectId: 0,
-  //     };
-
-  //     const req = request(app.getHttpServer())
-  //       .post(`/tasks`)
-  //       .send(createTaskDto);
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
-  //   });
-
-  //   it("should create a new Task", async () => {
-  //     const createTaskDto: CreateTaskDto = {
-  //       title: "Task",
-  //       projectId: project.id,
-  //     };
-
-  //     const req = request(app.getHttpServer())
-  //       .post(`/tasks`)
-  //       .send(createTaskDto);
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.CREATED);
-  //   });
-
-  //   describe("Subtask", () => {
-  //     let parentTask: Task;
-
-  //     beforeEach(async () => {
-  //       parentTask = await prisma.task.create({
-  //         data: {
-  //           title: "Task",
-  //           projectId: project.id,
-  //           userId: user.id,
-  //         },
-  //       });
-  //     });
-
-  //     it("should create a new Subtask", async () => {
-  //       const createSubtaskDto: CreateTaskDto = {
-  //         title: "Task",
-  //         projectId: project.id,
-  //         parentId: parentTask.id,
-  //       };
-
-  //       const req = request(app.getHttpServer())
-  //         .post(`/tasks`)
-  //         .send(createSubtaskDto);
-
-  //       const res = await attachAccessToken(req, accessToken);
-
-  //       expect(res.status).toEqual(HttpStatus.CREATED);
-  //     });
-  //   });
-  // });
-
-  // describe("GET Get task by id", () => {
-  //   let taskId: number;
-
-  //   beforeEach(async () => {
-  //     const createTaskDto: CreateTaskDto = {
-  //       title: "Mock Task",
-  //       projectId: project.id,
-  //     };
-
-  //     const req = request(app.getHttpServer())
-  //       .post(`/tasks`)
-  //       .send(createTaskDto);
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     taskId = parseInt(res.body.id);
-  //   });
-
-  //   it("should throw NotFoundException when a task does not exist", async () => {
-  //     const taskId = 0;
-  //     const req = request(app.getHttpServer()).get(`/tasks/${taskId}`);
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.NOT_FOUND);
-  //   });
-
-  //   it("should return a Task", async () => {
-  //     const req = request(app.getHttpServer()).get(`/tasks/${taskId}`);
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //   });
-  // });
-
-  // describe("DELETE Delete a task", () => {
-  //   let taskId: number;
-
-  //   beforeEach(async () => {
-  //     const createTaskDto: CreateTaskDto = {
-  //       title: "Mock Task",
-  //       projectId: project.id,
-  //     };
-
-  //     const req = request(app.getHttpServer())
-  //       .post(`/tasks`)
-  //       .send(createTaskDto);
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     taskId = parseInt(res.body.id);
-  //   });
-
-  //   it("should throw NotFoundException when a task does not exist", async () => {
-  //     const taskId = 0;
-  //     const req = request(app.getHttpServer()).delete(`/tasks/${taskId}`);
-
-  //     const res = await attachAccessToken(req, accessToken);
-  //     expect(res.status).toEqual(HttpStatus.NOT_FOUND);
-  //   });
-
-  //   it("should delete a Task", async () => {
-  //     const req = request(app.getHttpServer()).delete(`/tasks/${taskId}`);
-
-  //     const res = await attachAccessToken(req, accessToken);
-  //     expect(res.status).toEqual(HttpStatus.NO_CONTENT);
-  //   });
-  // });
-
-  // describe("PATCH Update task", () => {
-  //   let taskId: number;
-
-  //   beforeEach(async () => {
-  //     const createTaskDto: CreateTaskDto = {
-  //       title: "Mock Task",
-  //       projectId: project.id,
-  //     };
-
-  //     const task = await prisma.task.create({
-  //       data: {
-  //         title: createTaskDto.title,
-  //         projectId: createTaskDto.projectId,
-  //         userId: user.id,
-  //       },
-  //     });
-
-  //     taskId = task.id;
-  //   });
-
-  //   it("should throw NotFoundException when a task does not exist", async () => {
-  //     const taskId = 0;
-  //     const req = request(app.getHttpServer()).patch(`/tasks/${taskId}`);
-
-  //     const res = await attachAccessToken(req, accessToken);
-  //     expect(res.status).toEqual(HttpStatus.NOT_FOUND);
-  //   });
-
-  //   it("should update a Task", async () => {
-  //     const updateTaskDto: UpdateTaskDto = {
-  //       title: "Updated via PATCH",
-  //       projectId: project.id,
-  //     };
-
-  //     const req = request(app.getHttpServer())
-  //       .patch(`/tasks/${taskId}`)
-  //       .send(updateTaskDto);
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //   });
-  // });
-
-  // describe("POST Duplicate a task", () => {
-  //   let task: Task;
-
-  //   beforeEach(async () => {
-  //     const createTaskDto: CreateTaskDto = {
-  //       title: "Mock Task",
-  //       projectId: project.id,
-  //     };
-
-  //     task = await prisma.task.create({
-  //       data: {
-  //         title: createTaskDto.title,
-  //         projectId: createTaskDto.projectId,
-  //         userId: user.id,
-  //       },
-  //     });
-  //   });
-
-  //   it("should throw BadRequestException when the project does not exist", async () => {
-  //     const taskId = 0;
-  //     const req = request(app.getHttpServer()).post(
-  //       `/tasks/${taskId}/duplicate`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-  //     expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
-  //   });
-
-  //   it("should throw NotFoundException when the task does not exist", async () => {
-  //     const req = request(app.getHttpServer()).post(`/tasks/0/duplicate`);
-
-  //     const res = await attachAccessToken(req, accessToken);
-  //     expect(res.status).toEqual(HttpStatus.NOT_FOUND);
-  //   });
-
-  //   it("should duplicate a Task", async () => {
-  //     const req = request(app.getHttpServer()).post(
-  //       `/tasks/${task.id}/duplicate`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-  //     const newTask: Task = res.body;
-
-  //     expect(res.status).toEqual(HttpStatus.CREATED);
-  //     expect(newTask.title).toEqual(task.title);
-  //     expect(newTask.projectId).toEqual(task.projectId);
-  //   });
-  // });
-
-  // describe("GET /tasks", () => {
-  //   beforeEach(async () => {
-  //     const date = new Date();
-  //     date.setHours(0, 0, 0, 0);
-
-  //     const yesterday = new Date(date);
-  //     yesterday.setDate(date.getDate() - 1);
-
-  //     const tomorrow = new Date(date);
-  //     tomorrow.setDate(date.getDate() + 1);
-
-  //     await prisma.task.createMany({
-  //       data: [
-  //         {
-  //           title: "Task 1",
-  //           projectId: project.id,
-  //           userId: user.id,
-  //           dueDate: yesterday.toISOString(),
-  //           priority: Priority.HIGH,
-  //         },
-  //         {
-  //           title: "Task 2",
-  //           projectId: project.id,
-  //           userId: user.id,
-  //           dueDate: date.toISOString(),
-  //           priority: Priority.MEDIUM,
-  //         },
-  //         {
-  //           title: "Task 3",
-  //           projectId: project.id,
-  //           userId: user.id,
-  //           dueDate: tomorrow,
-  //           priority: Priority.LOW,
-  //         },
-  //         {
-  //           title: "Task 4",
-  //           projectId: project.id,
-  //           userId: user.id,
-  //           dueDate: tomorrow,
-  //           priority: Priority.NONE,
-  //         },
-  //       ],
-  //     });
-  //   });
-
-  //   it("should throw BadRequestException when the priority is invalid", async () => {
-  //     const req = request(app.getHttpServer()).get(`/tasks?priority=-69420`);
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
-  //   });
-
-  //   it("should return a paginated list of HIGH priority tasks", async () => {
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?priority=${Priority.HIGH}`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(1);
-  //     expect(res.body.data[0].priority).toEqual(Priority.HIGH);
-  //   });
-
-  //   it("should return a paginated list of MEDIUM priority tasks", async () => {
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?priority=${Priority.MEDIUM}`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(1);
-  //     expect(res.body.data[0].priority).toEqual(Priority.MEDIUM);
-  //   });
-
-  //   it("should return a paginated list of LOW priority tasks", async () => {
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?priority=${Priority.LOW}`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(1);
-  //     expect(res.body.data[0].priority).toEqual(Priority.LOW);
-  //   });
-
-  //   it("should return a paginated list of tasks", async () => {
-  //     const req = request(app.getHttpServer()).get(`/tasks`);
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(4);
-  //   });
-
-  //   it("should return a paginated list of tasks sorted by due date", async () => {
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?orderBy=dueDate&dir=asc`,
-  //     );
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(4);
-
-  //     const taskDueDates: Date[] = res.body.data.map((task: Task) => {
-  //       return new Date(task.dueDate);
-  //     });
-
-  //     expect(taskDueDates[0].getTime()).toBeLessThanOrEqual(
-  //       taskDueDates[1].getTime(),
-  //     );
-  //     expect(taskDueDates[1].getTime()).toBeLessThanOrEqual(
-  //       taskDueDates[2].getTime(),
-  //     );
-  //     expect(taskDueDates[2].getTime()).toBeLessThanOrEqual(
-  //       taskDueDates[3].getTime(),
-  //     );
-  //   });
-
-  //   it("should return a paginated list of tasks sorted by priority", async () => {
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?orderBy=priority&dir=desc`,
-  //     );
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(4);
-  //     expect(res.body.data[0].priority).toEqual(Priority.HIGH);
-  //     expect(res.body.data[1].priority).toEqual(Priority.MEDIUM);
-  //     expect(res.body.data[2].priority).toEqual(Priority.LOW);
-  //     expect(res.body.data[3].priority).toEqual(Priority.NONE);
-  //   });
-
-  //   it("should return a paginated list of tasks sorted by title", async () => {
-  //     const req = request(app.getHttpServer()).get(`/tasks?orderBy=title`);
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(4);
-  //     expect(res.body.data[0].title).toEqual("Task 1");
-  //     expect(res.body.data[1].title).toEqual("Task 2");
-  //     expect(res.body.data[2].title).toEqual("Task 3");
-  //     expect(res.body.data[3].title).toEqual("Task 4");
-  //   });
-
-  //   it("should return a paginated list of tasks sorted by title in descending order", async () => {
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?orderBy=title&dir=desc`,
-  //     );
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(4);
-  //     expect(res.body.data[0].title).toEqual("Task 4");
-  //     expect(res.body.data[1].title).toEqual("Task 3");
-  //     expect(res.body.data[2].title).toEqual("Task 2");
-  //     expect(res.body.data[3].title).toEqual("Task 1");
-  //   });
-
-  //   it("should return a paginated list of today's tasks", async () => {
-  //     const start = new Date();
-  //     start.setHours(0, 0, 0, 0);
-
-  //     const end = new Date(start);
-  //     end.setHours(23, 59, 59, 999);
-
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?startDate=${start.toISOString()}&endDate=${end.toISOString()}`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(1);
-  //   });
-
-  //   it("should return a paginated list of tasks with a due date in the future", async () => {
-  //     const today = new Date();
-  //     today.setHours(0, 0, 0, 0);
-
-  //     const tomorrow = new Date(today);
-  //     tomorrow.setDate(tomorrow.getDate() + 1);
-
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?startDate=${tomorrow.toISOString()}`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(2);
-  //   });
-
-  //   it("should return a paginated list of tasks with a due date in the past", async () => {
-  //     const today = new Date();
-  //     today.setHours(0, 0, 0, 0);
-
-  //     const yesterday = new Date(today);
-  //     yesterday.setDate(yesterday.getDate() - 1);
-
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?endDate=${yesterday.toISOString()}`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(1);
-  //   });
-
-  //   it("should return a paginated list of tasks with a due date in the past and a priority of HIGH", async () => {
-  //     const today = new Date();
-  //     today.setHours(0, 0, 0, 0);
-
-  //     const yesterday = new Date(today);
-  //     yesterday.setDate(yesterday.getDate() - 1);
-
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?endDate=${yesterday.toISOString()}&priority=${Priority.HIGH}`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(1);
-  //     expect(res.body.data[0].priority).toEqual(Priority.HIGH);
-  //   });
-
-  //   it("should return a paginated list of tasks with a due date in the past and a priority of MEDIUM", async () => {
-  //     const today = new Date();
-  //     today.setHours(0, 0, 0, 0);
-
-  //     const yesterday = new Date(today);
-  //     yesterday.setDate(yesterday.getDate() - 1);
-
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?endDate=${yesterday.toISOString()}&priority=${Priority.MEDIUM}`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(0);
-  //   });
-
-  //   it('should return a paginated list of today\'s tasks using "gte" and "lte"', async () => {
-  //     const lowerBound = new Date();
-  //     lowerBound.setHours(0, 0, 0, 0);
-
-  //     const upperBound = new Date(lowerBound);
-  //     upperBound.setHours(23, 59, 59, 999);
-
-  //     const req = request(app.getHttpServer()).get(
-  //       `/tasks?gte=${lowerBound.getTime()}&lte=${upperBound.getTime()}`,
-  //     );
-
-  //     const res = await attachAccessToken(req, accessToken);
-
-  //     expect(res.status).toEqual(HttpStatus.OK);
-  //     expect(res.body).toBeDefined();
-  //     expect(res.body.data.length).toEqual(1);
-  //   });
-  // });
 });

@@ -53,6 +53,7 @@ export class TasksController {
   }
 
   @Delete(":id")
+  @HttpCode(HttpStatus.OK)
   async remove(
     @UserProfile("id") userId: string,
     @Param() params: FindOneParam,

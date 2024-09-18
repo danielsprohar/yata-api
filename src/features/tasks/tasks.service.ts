@@ -83,15 +83,6 @@ export class TasksService {
       }
     }
 
-    // const existingTags = await this.prisma.tag.findMany({
-    //   where: {
-    //     ownerId: ownerIdBuffer,
-    //     name: {
-    //       in: dto.tags,
-    //     },
-    //   },
-    // });
-
     const tags: string[] = dto.tags || [];
 
     try {
@@ -149,6 +140,8 @@ export class TasksService {
       priority,
       from,
       to,
+      lt,
+      gt,
       projectId,
       workspaceId,
       dir,
@@ -168,16 +161,23 @@ export class TasksService {
           lte: new Date(to),
         },
       });
-    } else if (from) {
+    } else if (gt && lt) {
       filters.push({
         dueDate: {
-          gte: from,
+          gt: new Date(gt),
+          lt: new Date(lt),
         },
       });
-    } else if (to) {
+    } else if (gt) {
       filters.push({
         dueDate: {
-          lte: to,
+          gt: new Date(gt),
+        },
+      });
+    } else if (lt) {
+      filters.push({
+        dueDate: {
+          lt: new Date(lt),
         },
       });
     }
@@ -310,14 +310,21 @@ export class TasksService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    const task = await this.prisma.task.delete({
-      where: {
-        id: uuidToBuffer(id),
-        ownerId: uuidToBuffer(userId),
-      },
-    });
+    let result: Prisma.BatchPayload;
 
-    if (!task) {
+    try {
+      result = await this.prisma.task.deleteMany({
+        where: {
+          id: uuidToBuffer(id),
+          ownerId: uuidToBuffer(userId),
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      throw new UnprocessableEntityException("Could not delete the task");
+    }
+
+    if (result.count === 0) {
       throw new TaskNotFoundException();
     }
   }

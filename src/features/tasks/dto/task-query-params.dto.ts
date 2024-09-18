@@ -24,6 +24,7 @@ export class TaskQueryParams extends PageQueryParams {
   @IsTaskPriorityFilter()
   priority?: string;
 
+  // from  and to are optional; if both are provided, the dueDate should be between from and to
   @IsOptional()
   @IsISO8601()
   from?: string;
@@ -31,4 +32,12 @@ export class TaskQueryParams extends PageQueryParams {
   @IsOptional()
   @IsISO8601()
   to?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  lt?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  gt?: string;
 }

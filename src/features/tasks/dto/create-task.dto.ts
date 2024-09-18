@@ -33,6 +33,7 @@ export class CreateTaskDto {
   sectionId?: string;
 
   @IsOptional()
+  @IsUUID()
   ownerId?: string;
 
   @IsOptional()
