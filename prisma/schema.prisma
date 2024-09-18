@@ -2,12 +2,13 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextIndex"]
 }
 
 datasource db {
-  provider          = "mysql"
-  url               = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
   // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
@@ -98,7 +99,7 @@ model Section {
 
 model Task {
   id          Bytes      @id @db.Binary(16)
-  name        String     @db.VarChar(255)
+  title       String     @db.VarChar(255)
   description String?    @db.Text
   status      TaskStatus @default(NOT_STARTED)
   dueDate     DateTime?  @map("due_date")
@@ -106,14 +107,13 @@ model Task {
   allDay      Boolean    @default(true) @map("all_day")
   startedAt   DateTime?  @map("started_at")
   completedAt DateTime?  @map("completed_at")
-  ownerId     Bytes      @map("owner_id") @db.Binary(16)
-  tags        Json?
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
   rrule       String?    @db.Text
   version     Int        @default(1)
 
   // relationships
+  ownerId     Bytes     @map("owner_id") @db.Binary(16)
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId Bytes     @map("workspace_id") @db.Binary(16)
 
@@ -127,8 +127,22 @@ model Task {
   sectionId Bytes?   @db.Binary(16)
 
   subtasks Task[] @relation("SubTasks")
+  tags     Tag[]
+
+  @@index([title])
+}
+
+model Tag {
+  id        Bytes    @id @db.Binary(16)
+  name      String   @db.VarChar(16)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  version   Int      @default(1)
+  ownerId   Bytes    @map("owner_id") @db.Binary(16)
+  tasks     Task[]
 
   @@index([name])
+  @@index([ownerId])
 }
 
 // Enums

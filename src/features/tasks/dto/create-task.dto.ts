@@ -1,5 +1,6 @@
 import { Priority, TaskStatus } from "@prisma/client";
 import {
+  IsArray,
   IsEnum,
   IsISO8601,
   IsOptional,
@@ -28,7 +29,7 @@ export class CreateTaskDto {
 
   @IsString()
   @MaxLength(255)
-  name: string;
+  title: string;
 
   @IsOptional()
   @IsString()
@@ -50,4 +51,10 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   rrule?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(16, { each: true })
+  tags?: string[];
 }

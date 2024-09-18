@@ -1,5 +1,5 @@
 import { Project } from "@prisma/client";
-import { bufferToUuid } from "src/core/utils/uuid.util";
+import { bufferToUuid } from "../../../core/utils/uuid.util";
 
 export interface ProjectDto
   extends Omit<Project, "id" | "workspaceId" | "ownerId"> {

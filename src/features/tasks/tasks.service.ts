@@ -1,6 +1,6 @@
 import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { Prisma, TaskStatus } from "@prisma/client";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { PageResponse } from "../../core/model/page-response.model";
 import { generatePrimaryKey, uuidToBuffer } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -36,7 +36,7 @@ export class TasksService {
       const task = await this.prisma.task.create({
         data: {
           id: generatePrimaryKey(),
-          name: dto.name,
+          title: dto.title,
           description: dto.description,
           status: dto.status,
           dueDate: dto.dueDate,
@@ -204,7 +204,7 @@ export class TasksService {
           },
           data: {
             version: task.version + 1,
-            name: dto.name,
+            title: dto.title,
             description: dto.description,
             status: dto.status,
             dueDate: dto.dueDate,
