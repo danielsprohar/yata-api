@@ -111,7 +111,7 @@ describe("TasksController", () => {
     await prisma.tag.deleteMany({
       where: {
         ownerId: ownerIdBuffer,
-      }
+      },
     });
     await prisma.task.deleteMany({
       where: {
@@ -136,21 +136,27 @@ describe("TasksController", () => {
 
   describe("POST Create task", () => {
     it("should create a task with tags", async () => {
+      const tagNames = [tag.name, "tag"];
       const dto: CreateTaskDto = {
         projectId: bufferToUuid(project.id),
         workspaceId: bufferToUuid(workspace.id),
         ownerId: bufferToUuid(ownerIdBuffer),
         title: "Task",
-        tags: [tag.name, "tag"],
+        tags: tagNames,
       };
 
       const res = await request(app.getHttpServer()).post(`/tasks`).send(dto);
 
-      console.log("res.body", res.body);
-
       expect(res.status).toEqual(HttpStatus.OK);
       expect(res.body).toBeDefined();
       expect(res.body.title).toEqual(dto.title);
+
+      const actualTagNames = res.body.tags.map((t: Tag) => t.name);
+      expect(actualTagNames.length).toEqual(tagNames.length);
+
+      for (const tag of tagNames) {
+        expect(actualTagNames).toContain(tag);
+      }
     });
   });
 
