@@ -36,18 +36,21 @@ async function main() {
         id: sectionIds[0],
         projectId: project.id,
         ownerId: ownerIdBuffer,
+        position: 0,
       },
       {
         name: "In Progress",
         id: sectionIds[1],
         projectId: project.id,
         ownerId: ownerIdBuffer,
+        position: 1,
       },
       {
         name: "Completed",
         id: sectionIds[2],
         projectId: project.id,
         ownerId: ownerIdBuffer,
+        position: 2,
       },
     ],
   });
