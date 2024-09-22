@@ -2,11 +2,15 @@ import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { Prisma, TaskStatus } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { PageResponse } from "../../core/model/page-response.model";
-import { generatePrimaryKey, uuidToBuffer } from "../../core/utils/uuid.util";
+import {
+  bufferToUuid,
+  generatePrimaryKey,
+  uuidToBuffer,
+} from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
 import { CreateTaskDto } from "./dto/create-task.dto";
-import { toTagDto } from "./dto/tag.dto";
+import { toTagDto, toTagsArrayDto } from "./dto/tag.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
 import { TaskDto, toTaskDto } from "./dto/task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
@@ -215,6 +219,7 @@ export class TasksService {
     const whereClause = {
       AND: filters,
     };
+
     const [data, count] = await Promise.all([
       this.prisma.task.findMany({
         skip: page * pageSize,
@@ -233,11 +238,22 @@ export class TasksService {
       }),
     ]);
 
+    const tasks: TaskDto[] = data.map((task) => ({
+      ...toTaskDto(task),
+      tags: task.tags ? toTagsArrayDto(task.tags) : [],
+      subtasks: task.subtasks
+        ? task.subtasks.map((subtask) => ({
+            ...toTaskDto(subtask),
+            id: bufferToUuid(subtask.id),
+          }))
+        : [],
+    }));
+
     return {
       page,
       pageSize,
       count,
-      data: data.map((task) => toTaskDto(task)),
+      data: tasks,
     };
   }
 

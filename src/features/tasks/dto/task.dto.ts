@@ -26,12 +26,23 @@ export interface TaskDto
 
 export function toTaskDto(task: Task): TaskDto {
   return {
-    ...task,
     id: bufferToUuid(task.id),
     ownerId: bufferToUuid(task.ownerId),
     workspaceId: bufferToUuid(task.workspaceId),
     projectId: bufferToUuid(task.projectId),
     sectionId: task.sectionId ? bufferToUuid(task.sectionId) : undefined,
     parentId: task.parentId ? bufferToUuid(task.parentId) : undefined,
+    allDay: task.allDay,
+    completedAt: task.completedAt,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    description: task.description,
+    dueDate: task.dueDate,
+    priority: task.priority,
+    rrule: task.rrule,
+    startedAt: task.startedAt ? new Date(task.startedAt) : null,
+    status: task.status,
+    title: task.title,
+    version: task.version,
   };
 }
