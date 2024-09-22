@@ -9,7 +9,7 @@ async function main() {
 
   const workspace = await prisma.workspace.create({
     data: {
-      name: "My Workspace",
+      name: "YATA",
       id: generatePrimaryKey(),
       ownerId: ownerIdBuffer,
     },
@@ -17,7 +17,7 @@ async function main() {
 
   const project = await prisma.project.create({
     data: {
-      name: "My Project",
+      name: "ng_spa",
       id: generatePrimaryKey(),
       workspaceId: workspace.id,
       ownerId: ownerIdBuffer,
