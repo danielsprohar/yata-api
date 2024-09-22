@@ -18,3 +18,20 @@ export const toTagDto = (tag: Tag): TagDto => ({
   updatedAt: tag.updatedAt,
   ownerId: bufferToUuid(tag.ownerId),
 });
+
+export const toTagsArrayDto = (tags: Tag[]): TagDto[] => {
+  const tagDtos: TagDto[] = [];
+
+  for (const tag of tags) {
+    tagDtos.push({
+      id: bufferToUuid(tag.id),
+      name: tag.name,
+      version: tag.version,
+      createdAt: tag.createdAt,
+      updatedAt: tag.updatedAt,
+      ownerId: bufferToUuid(tag.ownerId),
+    });
+  }
+
+  return tagDtos;
+};
