@@ -133,7 +133,7 @@ export class TasksService {
     }
   }
 
-  async fetch(
+  async findMany(
     params: TaskQueryParams,
     ownerId: string,
   ): Promise<PageResponse<TaskDto>> {

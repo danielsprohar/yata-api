@@ -32,7 +32,7 @@ export class TasksController {
     @UserProfile("id") userId: string,
     @Query() queryParams: TaskQueryParams,
   ) {
-    return this.tasksService.fetch(queryParams, userId);
+    return this.tasksService.findMany(queryParams, userId);
   }
 
   @Get(":id")
