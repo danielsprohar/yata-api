@@ -155,6 +155,7 @@ export class TasksService {
     const filters: Prisma.TaskWhereInput[] = [
       {
         ownerId: uuidToBuffer(ownerId),
+        parentId: null, // Do not flatten the subtasks
       },
     ];
 
