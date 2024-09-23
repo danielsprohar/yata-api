@@ -10,6 +10,7 @@ import { SectionsModule } from "./features/sections/sections.module";
 import { TasksModule } from "./features/tasks/tasks.module";
 import { WorkspacesModule } from "./features/workspaces/workspaces.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { TagsModule } from './features/tags/tags.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     SectionsModule,
     TasksModule,
     WorkspacesModule,
+    TagsModule,
   ],
   controllers: [],
   providers: [
