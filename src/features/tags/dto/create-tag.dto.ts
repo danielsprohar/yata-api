@@ -1,10 +1,4 @@
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-} from "class-validator";
+import { IsNotEmpty, IsString, IsUUID, MaxLength } from "class-validator";
 
 export class CreateTagDto {
   @IsString()
@@ -15,8 +9,4 @@ export class CreateTagDto {
   @IsUUID()
   @IsNotEmpty()
   taskId: string;
-
-  @IsOptional()
-  @IsUUID()
-  ownerId?: string;
 }

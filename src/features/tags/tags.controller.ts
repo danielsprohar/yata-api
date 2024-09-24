@@ -26,12 +26,9 @@ export class TagsController {
   @HttpCode(HttpStatus.OK)
   create(
     @UserProfile("id") userId: string,
-    @Body() createTagDto: CreateTagDto,
+    @Body() dto: CreateTagDto,
   ) {
-    return this.tagsService.create({
-      ...createTagDto,
-      ownerId: userId,
-    });
+    return this.tagsService.create(userId, dto);
   }
 
   @Get()
@@ -48,8 +45,8 @@ export class TagsController {
   }
 
   @Patch(":id")
-  update(@Param() param: FindOneParam, @Body() updateTagDto: UpdateTagDto) {
-    return this.tagsService.update(param.id, updateTagDto);
+  update(@Param() param: FindOneParam, @Body() dto: UpdateTagDto) {
+    return this.tagsService.update(param.id, dto);
   }
 
   @Delete(":id")

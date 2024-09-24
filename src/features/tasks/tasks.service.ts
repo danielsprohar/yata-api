@@ -1,6 +1,7 @@
 import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { Prisma, TaskStatus } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { PrismaErrorCodes } from "../../core/errors/prisma-error-codes";
 import { PageResponse } from "../../core/model/page-response.model";
 import {
   bufferToUuid,
@@ -10,6 +11,7 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
 import { toTagDto, toTagsArrayDto } from "../tags/dto/tag.dto";
+import { AddTagDto } from "./dto/add-tag.dto";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
 import { TaskDto, toTaskDto } from "./dto/task.dto";
@@ -20,6 +22,152 @@ import { TaskNotFoundException } from "./exception/task-not-found.expection";
 @Injectable()
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // =============================================================
+  // Tags
+  // =============================================================
+
+  /**
+   * Add a tag to a task
+   * @param dto
+   * @returns
+   */
+  async addTag(
+    taskId: string,
+    ownerId: string,
+    dto: AddTagDto,
+  ): Promise<TaskDto> {
+    const tagId = generatePrimaryKey();
+    const taskIdBuffer = uuidToBuffer(taskId);
+
+    try {
+      const task = await this.prisma.task.update({
+        where: {
+          id: taskIdBuffer,
+        },
+        data: {
+          tags: {
+            create: {
+              id: tagId,
+              name: dto.tag,
+              ownerId: uuidToBuffer(ownerId),
+            },
+          },
+        },
+        include: {
+          tags: true,
+        },
+      });
+
+      return {
+        ...toTaskDto(task),
+        tags: task.tags.map((tag) => toTagDto(tag)),
+      };
+    } catch (e) {
+      console.error(e);
+      throw new UnprocessableEntityException("Could not add the tag");
+    }
+  }
+
+  /**
+   * Add an existing tag to a task
+   * @param taskId
+   * @param tagId
+   * @param ownerId
+   * @returns
+   */
+  async connectTag(taskId: string, tagId: string): Promise<TaskDto> {
+    const taskIdBuffer = uuidToBuffer(taskId);
+    const tagIdBuffer = uuidToBuffer(tagId);
+
+    try {
+      const updatedTask = await this.prisma.task.update({
+        where: {
+          id: taskIdBuffer,
+        },
+        data: {
+          tags: {
+            connect: {
+              id: tagIdBuffer,
+            },
+          },
+        },
+        include: {
+          tags: true,
+        },
+      });
+
+      return {
+        ...toTaskDto(updatedTask),
+        tags: updatedTask.tags.map((tag) => toTagDto(tag)),
+      };
+    } catch (e) {
+      console.error(e);
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === PrismaErrorCodes.RECORD_NOT_FOUND) {
+          throw new TaskNotFoundException();
+        }
+      }
+      throw new UnprocessableEntityException("Could not connect the tag");
+    }
+  }
+
+  /**
+   * Remove a tag from a task
+   * @param taskId
+   * @param tagId
+   * @param ownerId
+   * @returns
+   */
+  async removeTag(
+    taskId: string,
+    tagId: string,
+    ownerId: string,
+  ): Promise<TaskDto> {
+    const taskIdBuffer = uuidToBuffer(taskId);
+    const tagIdBuffer = uuidToBuffer(tagId);
+
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskIdBuffer,
+        ownerId: uuidToBuffer(ownerId),
+      },
+    });
+
+    if (!task) {
+      throw new TaskNotFoundException();
+    }
+
+    try {
+      const updatedTask = await this.prisma.task.update({
+        where: {
+          id: taskIdBuffer,
+        },
+        data: {
+          tags: {
+            disconnect: {
+              id: tagIdBuffer,
+            },
+          },
+        },
+        include: {
+          tags: true,
+        },
+      });
+
+      return {
+        ...toTaskDto(updatedTask),
+        tags: updatedTask.tags.map((tag) => toTagDto(tag)),
+      };
+    } catch (e) {
+      console.error(e);
+      throw new UnprocessableEntityException("Could not remove the tag");
+    }
+  }
+
+  // =============================================================
+  // Tasks
+  // =============================================================
 
   async create(dto: CreateTaskDto, ownerId: string): Promise<TaskDto> {
     if (dto.tags && dto.tags.length > 0) {
@@ -294,29 +442,31 @@ export class TasksService {
     }
 
     try {
+      const updatedTaskData: Prisma.TaskUncheckedUpdateInput = {
+        version: task.version + 1,
+        title: dto.title,
+        description: dto.description,
+        status: dto.status,
+        dueDate: dto.dueDate,
+        priority: dto.priority,
+        workspaceId: dto.workspaceId
+          ? uuidToBuffer(dto.workspaceId)
+          : undefined,
+        projectId: dto.projectId ? uuidToBuffer(dto.projectId) : undefined,
+        parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
+        sectionId: dto.sectionId ? uuidToBuffer(dto.sectionId) : undefined,
+        startedAt:
+          dto.status === TaskStatus.IN_PROGRESS ? new Date() : undefined,
+        completedAt:
+          dto.status === TaskStatus.COMPLETED ? new Date() : undefined,
+      };
+
       return this.prisma.task
         .update({
           where: {
             id: uuidToBuffer(id),
           },
-          data: {
-            version: task.version + 1,
-            title: dto.title,
-            description: dto.description,
-            status: dto.status,
-            dueDate: dto.dueDate,
-            priority: dto.priority,
-            workspaceId: dto.workspaceId
-              ? uuidToBuffer(dto.workspaceId)
-              : undefined,
-            projectId: dto.projectId ? uuidToBuffer(dto.projectId) : undefined,
-            parentId: dto.parentId ? uuidToBuffer(dto.parentId) : undefined,
-            sectionId: dto.sectionId ? uuidToBuffer(dto.sectionId) : undefined,
-            startedAt:
-              dto.status === TaskStatus.IN_PROGRESS ? new Date() : undefined,
-            completedAt:
-              dto.status === TaskStatus.COMPLETED ? new Date() : undefined,
-          },
+          data: updatedTaskData,
         })
         .then((updatedTask) => toTaskDto(updatedTask));
     } catch (e) {

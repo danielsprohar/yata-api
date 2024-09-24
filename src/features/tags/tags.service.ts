@@ -17,17 +17,13 @@ import { TagNotFoundException } from "./exceptions/tag-not-found.exception";
 export class TagsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateTagDto): Promise<TagDto> {
-    if (!dto.ownerId) {
-      throw new UnprocessableEntityException("ownerId is required");
-    }
-
+  async create(ownerId: string, dto: CreateTagDto): Promise<TagDto> {
     try {
       const tag = await this.prisma.tag.create({
         data: {
           id: generatePrimaryKey(),
           name: dto.name,
-          ownerId: uuidToBuffer(dto.ownerId),
+          ownerId: uuidToBuffer(ownerId),
           tasks: {
             connect: {
               id: uuidToBuffer(dto.taskId),
