@@ -33,7 +33,8 @@ import {
 import { CreateTagDto } from "../src/features/tags/dto/create-tag.dto";
 import { TagDto } from "../src/features/tags/dto/tag.dto";
 import { UpdateTagDto } from "../src/features/tags/dto/update-tag.dto";
-import { AddTagDto } from "../src/features/tasks/dto/add-tag.dto";
+import { AddTagsDto } from "../src/features/tasks/dto/add-tags.dto";
+import { ConnectTagsDto } from "../src/features/tasks/dto/connect-tags.dto";
 import { TaskPriority } from "../src/features/tasks/enums/task-priority.enum";
 import { PrismaService } from "../src/prisma/prisma.service";
 
@@ -208,11 +209,37 @@ describe("Tags", () => {
     await app.close();
   });
 
+  describe("POST /tasks/:id/tags", () => {
+    it("should add a list of new tags", async () => {
+      const dto: AddTagsDto = {
+        tags: ["tag2", "tag3"],
+      };
+
+      const res = await request(app.getHttpServer())
+        .post(`/tasks/${bufferToUuid(task.id)}/tags`)
+        .send(dto);
+
+      expect(res.status).toEqual(HttpStatus.OK);
+
+      const updatedTask = await prismaClient.task.findUniqueOrThrow({
+        where: {
+          id: task.id,
+        },
+        include: {
+          tags: true,
+        },
+      });
+
+      const newTags = updatedTask.tags.filter((t) => dto.tags.includes(t.name));
+      expect(newTags.length).toEqual(2);
+    });
+  });
+
   describe("PATCH /tasks/:id/tags", () => {
-    let tempTag: Tag;
+    let tagToConnect: Tag;
 
     beforeEach(async () => {
-      tempTag = await prismaService.tag.create({
+      tagToConnect = await prismaService.tag.create({
         data: {
           id: generatePrimaryKey(),
           name: "temp tag",
@@ -221,9 +248,9 @@ describe("Tags", () => {
       });
     });
 
-    it("should add a new tag to a task", async () => {
-      const dto: AddTagDto = {
-        tag: "new tag",
+    it("should connect a list of existing tags", async () => {
+      const dto: ConnectTagsDto = {
+        tagIds: [bufferToUuid(tagToConnect.id)],
       };
 
       const res = await request(app.getHttpServer())
@@ -241,34 +268,30 @@ describe("Tags", () => {
         },
       });
 
-      const updatedTag = updatedTask.tags.find((t) => t.name === dto.tag);
+      const updatedTag = updatedTask.tags.find(
+        (t) => t.name === tagToConnect.name,
+      );
       expect(updatedTag).toBeDefined();
     });
+  });
 
-    it("should connect a tag to a task", async () => {
-      const res = await request(app.getHttpServer()).patch(
-        `/tasks/${bufferToUuid(task.id)}/tags/${bufferToUuid(tempTag.id)}`,
-      );
+  describe("PATCH /tasks/:id/tags/:tagId/remove", () => {
+    let tagToRemove: Tag;
 
-      expect(res.status).toEqual(HttpStatus.OK);
-
-      const updatedTask = await prismaClient.task.findUniqueOrThrow({
-        where: {
-          id: task.id,
-        },
-        include: {
-          tags: true,
+    beforeEach(async () => {
+      tagToRemove = await prismaService.tag.create({
+        data: {
+          id: generatePrimaryKey(),
+          name: "temp tag",
+          ownerId: ownerIdBuffer,
         },
       });
-
-      const updatedTag = updatedTask.tags.find((t) => t.name === tempTag.name);
-      expect(updatedTag).toBeDefined();
     });
 
     it("should remove a tag from a task", async () => {
       const res = await request(app.getHttpServer()).patch(
         `/tasks/${bufferToUuid(task.id)}/tags/${bufferToUuid(
-          tempTag.id,
+          tagToRemove.id,
         )}/remove`,
       );
 
@@ -283,7 +306,9 @@ describe("Tags", () => {
         },
       });
 
-      const updatedTag = updatedTask.tags.find((t) => t.name === tempTag.name);
+      const updatedTag = updatedTask.tags.find(
+        (t) => t.name === tagToRemove.name,
+      );
       expect(updatedTag).not.toBeDefined();
     });
   });

@@ -11,7 +11,6 @@ import {
 import { PrismaService } from "../../prisma/prisma.service";
 import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
 import { toTagDto, toTagsArrayDto } from "../tags/dto/tag.dto";
-import { AddTagDto } from "./dto/add-tag.dto";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
 import { TaskDto, toTaskDto } from "./dto/task.dto";
@@ -32,13 +31,14 @@ export class TasksService {
    * @param dto
    * @returns
    */
-  async addTag(
+  async addTags(
     taskId: string,
     ownerId: string,
-    dto: AddTagDto,
+    tags: string[],
   ): Promise<TaskDto> {
     const tagId = generatePrimaryKey();
     const taskIdBuffer = uuidToBuffer(taskId);
+    const ownerIdBuffer = uuidToBuffer(ownerId);
 
     try {
       const task = await this.prisma.task.update({
@@ -47,11 +47,11 @@ export class TasksService {
         },
         data: {
           tags: {
-            create: {
+            create: tags.map((tag) => ({
               id: tagId,
-              name: dto.tag,
-              ownerId: uuidToBuffer(ownerId),
-            },
+              name: tag,
+              ownerId: ownerIdBuffer,
+            })),
           },
         },
         include: {
@@ -72,13 +72,12 @@ export class TasksService {
   /**
    * Add an existing tag to a task
    * @param taskId
-   * @param tagId
+   * @param tagIds
    * @param ownerId
    * @returns
    */
-  async connectTag(taskId: string, tagId: string): Promise<TaskDto> {
+  async connectTags(taskId: string, tagIds: string[]): Promise<TaskDto> {
     const taskIdBuffer = uuidToBuffer(taskId);
-    const tagIdBuffer = uuidToBuffer(tagId);
 
     try {
       const updatedTask = await this.prisma.task.update({
@@ -87,9 +86,9 @@ export class TasksService {
         },
         data: {
           tags: {
-            connect: {
-              id: tagIdBuffer,
-            },
+            connect: tagIds.map((tagId) => ({
+              id: uuidToBuffer(tagId),
+            })),
           },
         },
         include: {

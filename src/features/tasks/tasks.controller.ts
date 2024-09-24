@@ -14,7 +14,8 @@ import {
 import { isUUID } from "class-validator";
 import { UserProfile } from "../../auth/decorators/user-profile.decorator";
 import { FindOneParam } from "../../core/dto/find-one-param";
-import { AddTagDto } from "./dto/add-tag.dto";
+import { AddTagsDto } from "./dto/add-tags.dto";
+import { ConnectTagsDto } from "./dto/connect-tags.dto";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
@@ -28,26 +29,21 @@ export class TasksController {
   // Tags
   // =========================================================================
 
-  @Patch(":id/tags")
-  async addTag(
+  @Post(":id/tags")
+  async addTags(
     @UserProfile("id") userId: string,
     @Param() params: FindOneParam,
-    @Body() dto: AddTagDto,
+    @Body() dto: AddTagsDto,
   ) {
-    return this.tasksService.addTag(params.id, userId, dto);
+    return this.tasksService.addTags(params.id, userId, dto.tags);
   }
 
-  @Patch(":id/tags/:tagId")
-  async connectTag(
+  @Patch(":id/tags")
+  async connectTags(
     @Param() params: FindOneParam,
-    @Param("tagId") tagId: string,
+    @Body() dto: ConnectTagsDto,
   ) {
-    if (!isUUID(tagId)) {
-      throw new BadRequestException("Invalid tagId. Must be a valid UUID.");
-    }
-
-    // TODO: Test this method
-    return this.tasksService.connectTag(params.id, tagId);
+    return this.tasksService.connectTags(params.id, dto.tagIds);
   }
 
   @Patch(":id/tags/:tagId/remove")
@@ -60,7 +56,6 @@ export class TasksController {
       throw new BadRequestException("Invalid tagId. Must be a valid UUID.");
     }
 
-    // TODO: Test this method
     return this.tasksService.removeTag(params.id, tagId, userId);
   }
 
