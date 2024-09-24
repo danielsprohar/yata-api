@@ -24,17 +24,17 @@ import * as request from "supertest";
 import { v4 as uuid } from "uuid";
 import { NoAuthAppTestModule } from "../src/app.module";
 import { JwtAuthGuard } from "../src/auth/guards/jwt-auth.guard";
+import { PageResponse } from "../src/core/model/page-response.model";
 import {
   bufferToUuid,
   generatePrimaryKey,
   uuidToBuffer,
 } from "../src/core/utils/uuid.util";
 import { CreateTagDto } from "../src/features/tags/dto/create-tag.dto";
+import { TagDto } from "../src/features/tags/dto/tag.dto";
 import { UpdateTagDto } from "../src/features/tags/dto/update-tag.dto";
 import { TaskPriority } from "../src/features/tasks/enums/task-priority.enum";
 import { PrismaService } from "../src/prisma/prisma.service";
-import { PageResponse } from "../src/core/model/page-response.model";
-import { TagDto } from "../src/features/tags/dto/tag.dto";
 
 class MockAuthGuard {
   validate() {
@@ -332,6 +332,18 @@ describe("TagsController", () => {
       const res = await request(app.getHttpServer()).post("/tags").send(dto);
 
       expect(res.status).toEqual(HttpStatus.OK);
+
+      const updatedTask = await prismaClient.task.findUniqueOrThrow({
+        where: {
+          id: task.id,
+        },
+        include: {
+          tags: true,
+        },
+      });
+
+      const updatedTag = updatedTask.tags.find((t) => t.name === dto.name);
+      expect(updatedTag).toBeDefined();
     });
 
     describe("Validation", () => {
