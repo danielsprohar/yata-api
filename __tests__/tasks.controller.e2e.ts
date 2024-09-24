@@ -9,7 +9,16 @@ import {
 } from "@nestjs/common";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { Test, TestingModule } from "@nestjs/testing";
-import { Project, Tag, Task, TaskStatus, Workspace } from "@prisma/client";
+import {
+  PrismaClient,
+  Project,
+  Tag,
+  Task,
+  TaskStatus,
+  Workspace,
+} from "@prisma/client";
+import { MySqlContainer, StartedMySqlContainer } from "@testcontainers/mysql";
+import { execSync } from "child_process";
 import { Observable } from "rxjs";
 import * as request from "supertest";
 import { v4 as uuid } from "uuid";
@@ -49,13 +58,41 @@ export class AddUserInterceptor implements NestInterceptor {
 
 describe("TasksController", () => {
   let app: INestApplication;
-  let prisma: PrismaService;
+  let prisma: PrismaClient;
+  let mysqlContainer: StartedMySqlContainer;
 
   let workspace: Workspace;
   let project: Project;
   let tag: Tag;
 
   beforeAll(async () => {
+    mysqlContainer = await new MySqlContainer("mysql:9")
+      .withDatabase("yata")
+      .withUser("root")
+      .withRootPassword("password")
+      .start();
+
+    // Set DATABASE_URL environment variable for Prisma
+    process.env.DATABASE_URL = mysqlContainer.getConnectionUri();
+
+    // Run Prisma migrations
+    execSync("npx prisma migrate deploy", {
+      env: {
+        DATABASE_URL: mysqlContainer.getConnectionUri(),
+      },
+    });
+
+    prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: mysqlContainer.getConnectionUri(),
+        },
+      },
+    });
+
+    await prisma.$connect();
+    jest.setTimeout(60_000);
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [NoAuthAppTestModule],
       providers: [
@@ -67,12 +104,15 @@ describe("TasksController", () => {
     })
       .overrideGuard(JwtAuthGuard)
       .useClass(MockAuthGuard)
+      .overrideProvider(PrismaService)
+      .useValue(prisma)
       .compile();
 
     app = moduleFixture.createNestApplication({
       logger: ["log"],
       forceCloseConnections: true,
     });
+
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true, // strip props that are not defined in the DTO class
@@ -84,8 +124,6 @@ describe("TasksController", () => {
   });
 
   beforeEach(async () => {
-    prisma = app.get(PrismaService);
-
     workspace = await prisma.workspace.create({
       data: {
         name: "YATA",
@@ -133,9 +171,8 @@ describe("TasksController", () => {
         ownerId: ownerIdBuffer,
       },
     });
-
   });
-  
+
   afterAll(async () => {
     await prisma.$disconnect();
     await app.close();
