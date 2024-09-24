@@ -8,18 +8,6 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "scripts": {
-    "prisma:dev:deploy": "prisma migrate deploy",
-    "db:reset": "prisma migrate reset",
-    "db:push": "prisma db push",
-    "db:seed": "prisma db seed",
-    "db:triggers": "prisma db execute --file ./scripts/sql/triggers.sql",
-    "db:init": "npm run db:push && npm run db:triggers",
-    "db:dev:rm": "docker compose rm dev-db --stop --force --volumes",
-    "db:dev:up": "docker compose up dev-db --detach",
-    "db:dev:restart": "npm run db:dev:rm && npm run db:dev:up && npm run db:init",
-    "db:test:rm": "docker compose rm test-db --stop --force --volumes",
-    "db:test:up": "docker compose up test-db --detach",
-    "db:test:restart": "npm run db:test:rm && npm run db:test:up && npm run prisma:test:deploy",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -32,8 +20,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "dotenv -e .env.test -- jest --config ./__tests__/jest-e2e.json --watch --no-cache --detectOpenHandles",
-    "test:db:create": "dotenv -e .env.test -- prisma migrate dev"
+    "test:e2e": "dotenv -e .env.test -- jest --config ./__tests__/jest-e2e.json --watch --no-cache --runInBand --detectOpenHandles"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.1",

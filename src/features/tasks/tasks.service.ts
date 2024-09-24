@@ -9,8 +9,8 @@ import {
 } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
+import { toTagDto, toTagsArrayDto } from "../tags/dto/tag.dto";
 import { CreateTaskDto } from "./dto/create-task.dto";
-import { toTagDto, toTagsArrayDto } from "./dto/tag.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
 import { TaskDto, toTaskDto } from "./dto/task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";

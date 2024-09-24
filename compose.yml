@@ -15,6 +15,22 @@ services:
     networks:
       - backend
 
+  test-db:
+    image: mysql:9
+    container_name: yata-test-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=yata
+      - MYSQL_USER=yata
+      - MYSQL_PASSWORD=password123
+      - MYSQL_PORT=3306
+    ports:
+      - '3305:3306'
+    volumes:
+      - test-db-data:/var/lib/mysql
+    networks:
+      - backend
+
   redis:
     image: redis:7.4-alpine
     container_name: yata-redis-cache
@@ -64,6 +80,7 @@ services:
       - keycloak-network
 
 volumes:
+  test-db-data:
   db-data:
   keycloak-data:
   redis-data:

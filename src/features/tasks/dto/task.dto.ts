@@ -1,6 +1,6 @@
 import { Task } from "@prisma/client";
 import { bufferToUuid } from "../../../core/utils/uuid.util";
-import { TagDto } from "./tag.dto";
+import { TagDto } from "../../tags/dto/tag.dto";
 
 export interface TaskDto
   extends Omit<

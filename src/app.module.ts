@@ -7,10 +7,10 @@ import { AuthModule } from "./auth/auth.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { ProjectsModule } from "./features/projects/projects.module";
 import { SectionsModule } from "./features/sections/sections.module";
+import { TagsModule } from "./features/tags/tags.module";
 import { TasksModule } from "./features/tasks/tasks.module";
 import { WorkspacesModule } from "./features/workspaces/workspaces.module";
 import { PrismaModule } from "./prisma/prisma.module";
-import { TagsModule } from './features/tags/tags.module';
 
 @Module({
   imports: [
@@ -62,6 +62,7 @@ export class AppModule {}
     ProjectsModule,
     SectionsModule,
     TasksModule,
+    TagsModule,
     WorkspacesModule,
   ],
   controllers: [],

@@ -7,8 +7,8 @@ import {
   uuidToBuffer,
 } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
-import { TagDto } from "../tasks/dto/tag.dto";
 import { CreateTagDto } from "./dto/create-tag.dto";
+import { TagDto, toTagDto } from "./dto/tag.dto";
 import { TagsQueryParams } from "./dto/tags-query-params.dto";
 import { UpdateTagDto } from "./dto/update-tag.dto";
 import { TagNotFoundException } from "./exceptions/tag-not-found.exception";
@@ -17,7 +17,11 @@ import { TagNotFoundException } from "./exceptions/tag-not-found.exception";
 export class TagsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateTagDto) {
+  async create(dto: CreateTagDto): Promise<TagDto> {
+    if (!dto.ownerId) {
+      throw new UnprocessableEntityException("ownerId is required");
+    }
+
     try {
       const tag = await this.prisma.tag.create({
         data: {
@@ -32,15 +36,15 @@ export class TagsService {
         },
       });
 
-      return tag;
+      return toTagDto(tag);
     } catch (e) {
       console.error(e);
       throw new UnprocessableEntityException(e);
     }
   }
 
-  async findAll(params: TagsQueryParams) {
-    const { ownerId, taskId } = params;
+  async findAll(params: TagsQueryParams): Promise<PageResponse<TagDto>> {
+    const { ownerId, taskId, q: query } = params;
     const ownerIdBuffer = uuidToBuffer(ownerId);
     const taskIdBuffer = taskId ? uuidToBuffer(taskId) : undefined;
     const page = Math.max(+params.page || 0, 0);
@@ -54,6 +58,13 @@ export class TagsService {
         },
       },
     };
+
+    if (query) {
+      tagSearchCriteria.name = {
+        contains: query,
+      };
+    }
+
     const [data, count] = await Promise.all([
       this.prisma.tag.findMany({
         where: tagSearchCriteria,
@@ -79,23 +90,49 @@ export class TagsService {
     return response;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<TagDto> {
     try {
-      return await this.prisma.tag.findUniqueOrThrow({
+      const tag = await this.prisma.tag.findUniqueOrThrow({
         where: {
           id: uuidToBuffer(id),
         },
       });
-    } catch {
-      return new TagNotFoundException();
+
+      return toTagDto(tag);
+    } catch (e) {
+      console.error(e);
+      throw new TagNotFoundException();
     }
   }
 
-  update(id: number, updateTagDto: UpdateTagDto) {
-    return `This action updates a #${id} tag`;
+  async update(id: string, dto: UpdateTagDto): Promise<TagDto> {
+    try {
+      const updatedTag = await this.prisma.tag.update({
+        where: {
+          id: uuidToBuffer(id),
+        },
+        data: {
+          name: dto.name,
+        },
+      });
+
+      return toTagDto(updatedTag);
+    } catch (e) {
+      console.error(e);
+      throw new TagNotFoundException();
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} tag`;
+  async remove(id: string): Promise<void> {
+    try {
+      await this.prisma.tag.delete({
+        where: {
+          id: uuidToBuffer(id),
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      throw new TagNotFoundException();
+    }
   }
 }

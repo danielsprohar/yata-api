@@ -29,9 +29,12 @@ import {
   generatePrimaryKey,
   uuidToBuffer,
 } from "../src/core/utils/uuid.util";
-import { TagDto } from "../src/features/tasks/dto/tag.dto";
+import { CreateTagDto } from "../src/features/tags/dto/create-tag.dto";
+import { UpdateTagDto } from "../src/features/tags/dto/update-tag.dto";
 import { TaskPriority } from "../src/features/tasks/enums/task-priority.enum";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { PageResponse } from "../src/core/model/page-response.model";
+import { TagDto } from "../src/features/tags/dto/tag.dto";
 
 class MockAuthGuard {
   validate() {
@@ -57,9 +60,9 @@ export class AddUserInterceptor implements NestInterceptor {
 
 describe("TagsController", () => {
   let app: INestApplication;
-  let dbContainer: StartedMySqlContainer;
+  let prismaService: PrismaService;
   let prismaClient: PrismaClient;
-  let prisma: PrismaService;
+  let mysqlContainer: StartedMySqlContainer;
 
   let workspace: Workspace;
   let project: Project;
@@ -67,32 +70,33 @@ describe("TagsController", () => {
   let tag: Tag;
 
   beforeAll(async () => {
-    dbContainer = await new MySqlContainer("mysql:9")
+    mysqlContainer = await new MySqlContainer("mysql:9")
       .withDatabase("yata")
       .withUser("root")
       .withRootPassword("password")
       .start();
 
-    process.env.DATABASE_URL = dbContainer.getConnectionUri();
-    prismaClient = new PrismaClient({
-      datasources: {
-        db: {
-          url: dbContainer.getConnectionUri(),
-        },
-      },
-    });
+    // Set DATABASE_URL environment variable for Prisma
+    process.env.DATABASE_URL = mysqlContainer.getConnectionUri();
 
     // Run Prisma migrations
     execSync("npx prisma migrate deploy", {
       env: {
-        DATABASE_URL: dbContainer.getConnectionUri(),
+        DATABASE_URL: mysqlContainer.getConnectionUri(),
       },
     });
 
-    return await prismaClient.$connect();
-  });
+    prismaClient = new PrismaClient({
+      datasources: {
+        db: {
+          url: mysqlContainer.getConnectionUri(),
+        },
+      },
+    });
 
-  beforeEach(async () => {
+    await prismaClient.$connect();
+    jest.setTimeout(60_000);
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [NoAuthAppTestModule],
       providers: [
@@ -121,12 +125,11 @@ describe("TagsController", () => {
     );
 
     return await app.init();
-  });
+  }, 60_000);
 
   beforeEach(async () => {
-    prisma = app.get(PrismaService);
-
-    workspace = await prisma.workspace.create({
+    prismaService = app.get(PrismaService);
+    workspace = await prismaService.workspace.create({
       data: {
         name: "YATA",
         id: uuidToBuffer(uuid()),
@@ -134,7 +137,7 @@ describe("TagsController", () => {
       },
     });
 
-    project = await prisma.project.create({
+    project = await prismaService.project.create({
       data: {
         id: generatePrimaryKey(),
         name: "ng_spa",
@@ -143,15 +146,11 @@ describe("TagsController", () => {
       },
     });
 
-    tag = await prisma.tag.create({
-      data: {
-        id: generatePrimaryKey(),
-        name: "tag1",
-        ownerId: ownerIdBuffer,
+    const tagIdBuffer = generatePrimaryKey();
+    task = await prismaService.task.create({
+      include: {
+        tags: true,
       },
-    });
-
-    task = await prisma.task.create({
       data: {
         id: generatePrimaryKey(),
         title: "Test task",
@@ -162,56 +161,246 @@ describe("TagsController", () => {
         projectId: project.id,
         workspaceId: workspace.id,
         tags: {
-          connect: {
-            id: tag.id,
+          create: {
+            id: tagIdBuffer,
+            ownerId: ownerIdBuffer,
+            name: "tag1",
           },
         },
+      },
+    });
+
+    tag = await prismaService.tag.findUniqueOrThrow({
+      where: {
+        id: tagIdBuffer,
       },
     });
   });
 
   afterEach(async () => {
-    await prisma.tag.deleteMany({
+    await prismaService.tag.deleteMany({
       where: {
         ownerId: ownerIdBuffer,
       },
     });
-    await prisma.task.deleteMany({
+    await prismaService.task.deleteMany({
       where: {
         ownerId: ownerIdBuffer,
       },
     });
-    await prisma.project.deleteMany({
+    await prismaService.project.deleteMany({
       where: {
         ownerId: ownerIdBuffer,
       },
     });
-    await prisma.workspace.deleteMany({
+    await prismaService.workspace.deleteMany({
       where: {
         ownerId: ownerIdBuffer,
       },
     });
-
-    await prisma.$disconnect();
   });
 
   afterAll(async () => {
-    await app.close();
     await prismaClient.$disconnect();
-    await dbContainer.stop();
+    await prismaService.$disconnect();
+    await mysqlContainer.stop();
+    await app.close();
   });
 
   describe("GET /tags/:tagId", () => {
     it("should fetch a tag by ID", async () => {
-      const tagId = bufferToUuid(tag.id);
-
-      const res = await request(app.getHttpServer()).get(`/tags/${tagId}`);
+      const res = await request(app.getHttpServer()).get(
+        "/tags/" + bufferToUuid(tag.id),
+      );
 
       expect(res.status).toEqual(HttpStatus.OK);
+    });
 
-      const tagDto = res.body as TagDto;
+    it("should return 404", async () => {
+      const res = await request(app.getHttpServer()).get("/tags/" + uuid());
+      expect(res.status).toEqual(HttpStatus.NOT_FOUND);
+    });
 
-      expect(tagDto.name).toEqual(tag.name);
+    describe("Validation", () => {
+      it("should return 400 when the tagId is not a valid UUID", async () => {
+        const res = await request(app.getHttpServer()).get("/tags/1");
+        expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+      });
+    });
+  });
+
+  describe("DELETE /tags/:tagId", () => {
+    let tagToDelete: Tag;
+
+    beforeEach(async () => {
+      tagToDelete = await prismaService.tag.create({
+        data: {
+          id: generatePrimaryKey(),
+          name: "tag2",
+          ownerId: ownerIdBuffer,
+        },
+      });
+    });
+
+    it("should delete a tag by ID", async () => {
+      const res = await request(app.getHttpServer()).delete(
+        "/tags/" + bufferToUuid(tagToDelete.id),
+      );
+
+      expect(res.status).toEqual(HttpStatus.OK);
+    });
+
+    it("should return 404", async () => {
+      const res = await request(app.getHttpServer()).delete("/tags/" + uuid());
+      expect(res.status).toEqual(HttpStatus.NOT_FOUND);
+    });
+
+    describe("Validation", () => {
+      it("should return 400 when the tagId is not a valid UUID", async () => {
+        const res = await request(app.getHttpServer()).delete("/tags/1");
+        expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+      });
+    });
+  });
+
+  describe("PATCH /tags/:tagId", () => {
+    it("should update a tag by ID", async () => {
+      const dto: UpdateTagDto = {
+        name: "updated tag",
+      };
+      const res = await request(app.getHttpServer())
+        .patch("/tags/" + bufferToUuid(tag.id))
+        .send(dto);
+
+      expect(res.status).toEqual(HttpStatus.OK);
+    });
+
+    it("should return 404", async () => {
+      const dto: UpdateTagDto = {
+        name: "updated tag",
+      };
+
+      const res = await request(app.getHttpServer())
+        .patch("/tags/" + uuid())
+        .send(dto);
+
+      expect(res.status).toEqual(HttpStatus.NOT_FOUND);
+    });
+
+    describe("Validation", () => {
+      const dto: UpdateTagDto = {
+        name: "updated tag",
+      };
+      it("should return 400 when the tagId is not a valid UUID", async () => {
+        const res = await request(app.getHttpServer())
+          .patch("/tags/1")
+          .send(dto);
+
+        expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+      });
+
+      it("should return 400 when the name is not a string", async () => {
+        const res = await request(app.getHttpServer())
+          .patch("/tags/" + bufferToUuid(tag.id))
+          .send({
+            name: 1,
+          });
+
+        expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+      });
+
+      it("should return 400 when the name is too long", async () => {
+        const dto: UpdateTagDto = {
+          name: "1".repeat(17),
+        };
+        const res = await request(app.getHttpServer())
+          .patch("/tags/" + bufferToUuid(tag.id))
+          .send(dto);
+
+        expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+      });
+    });
+  });
+
+  describe("POST /tags", () => {
+    it("should create a tag", async () => {
+      const dto: CreateTagDto = {
+        name: "new tag",
+        taskId: bufferToUuid(task.id),
+      };
+
+      const res = await request(app.getHttpServer()).post("/tags").send(dto);
+
+      expect(res.status).toEqual(HttpStatus.OK);
+    });
+
+    describe("Validation", () => {
+      it("should return 400 when the name is not a string", async () => {
+        const res = await request(app.getHttpServer())
+          .post("/tags")
+          .send({
+            name: 1,
+            taskId: bufferToUuid(task.id),
+          });
+
+        expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+      });
+
+      it("should return 400 when the name is too long", async () => {
+        const dto: CreateTagDto = {
+          name: "1".repeat(17),
+          taskId: bufferToUuid(task.id),
+        };
+
+        const res = await request(app.getHttpServer()).post("/tags").send(dto);
+
+        expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+      });
+    });
+  });
+
+  describe("GET /tags", () => {
+    it("should fetch all tags", async () => {
+      const res = await request(app.getHttpServer()).get("/tags");
+
+      expect(res.status).toEqual(HttpStatus.OK);
+      const response = res.body as PageResponse<TagDto>;
+
+      expect(response.data.length).toEqual(1);
+    });
+
+    it("should fetch all tags by taskId", async () => {
+      const res = await request(app.getHttpServer()).get(
+        "/tags?taskId=" + bufferToUuid(task.id),
+      );
+
+      expect(res.status).toEqual(HttpStatus.OK);
+      const response = res.body as PageResponse<TagDto>;
+
+      expect(response.data.length).toEqual(1);
+    });
+
+    it("should fetch all tags by query", async () => {
+      const res = await request(app.getHttpServer()).get("/tags?q=ta");
+
+      expect(res.status).toEqual(HttpStatus.OK);
+      const response = res.body as PageResponse<TagDto>;
+
+      expect(response.data.length).toEqual(1);
+    });
+
+    describe("Validation", () => {
+      it("should return 400 when the taskId is not a valid UUID", async () => {
+        const res = await request(app.getHttpServer()).get("/tags?taskId=1");
+        expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+      });
+
+      it("should return 400 when the q is too long", async () => {
+        const res = await request(app.getHttpServer()).get(
+          "/tags?q=1".repeat(17),
+        );
+        expect(res.status).toEqual(HttpStatus.BAD_REQUEST);
+      });
     });
   });
 });

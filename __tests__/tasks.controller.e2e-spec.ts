@@ -55,7 +55,7 @@ describe("TasksController", () => {
   let project: Project;
   let tag: Tag;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [NoAuthAppTestModule],
       providers: [
@@ -134,10 +134,10 @@ describe("TasksController", () => {
       },
     });
 
-    await prisma.$disconnect();
   });
-
+  
   afterAll(async () => {
+    await prisma.$disconnect();
     await app.close();
   });
 

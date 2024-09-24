@@ -1,6 +1,15 @@
+import { IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
 import { PageQueryParams } from "../../../core/dto/page-query-params.dto";
 
-export interface TagsQueryParams extends PageQueryParams {
+export class TagsQueryParams extends PageQueryParams {
+  @IsOptional()
+  @IsUUID()
   taskId?: string;
+
+  @IsOptional()
+  @MaxLength(16)
+  @IsString()
+  q?: string;
+
   ownerId: string;
 }
