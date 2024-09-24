@@ -117,7 +117,7 @@ model Task {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId Bytes     @map("workspace_id") @db.Binary(16)
 
-  Project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId Bytes   @map("project_id") @db.Binary(16)
 
   parent   Task?  @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
