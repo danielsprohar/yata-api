@@ -17,9 +17,9 @@ model Calendar {
   name        String          @db.VarChar(32)
   description String?         @db.Text
   public      Boolean         @default(false)
-  ownerId     Bytes           @map("owner_id") @db.Binary(16)
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @updatedAt @map("updated_at")
+  ownerId     Bytes           @db.Binary(16)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   version     Int             @default(1)
   events      CalendarEvent[]
 
@@ -30,16 +30,16 @@ model CalendarEvent {
   id          Bytes    @id @db.Binary(16)
   name        String   @db.VarChar(255)
   description String?  @db.Text
-  startDate   DateTime @map("start_date")
-  endDate     DateTime @map("end_date")
-  allDay      Boolean  @default(true) @map("all_day")
+  startDate   DateTime
+  endDate     DateTime
+  allDay      Boolean  @default(true)
   rrule       String?  @db.Text
-  ownerId     Bytes    @map("owner_id") @db.Binary(16)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  ownerId     Bytes    @db.Binary(16)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   version     Int      @default(1)
 
-  calendarId Bytes    @map("calendar_id") @db.Binary(16)
+  calendarId Bytes    @db.Binary(16)
   calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
 
   @@index([name])
@@ -50,9 +50,9 @@ model Workspace {
   name        String   @db.VarChar(32)
   description String?  @db.Text
   public      Boolean  @default(false)
-  ownerId     Bytes    @map("owner_id") @db.Binary(16)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  ownerId     Bytes    @db.Binary(16)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   version     Int      @default(1)
 
   projects Project[]
@@ -62,16 +62,15 @@ model Workspace {
 }
 
 model Project {
-  id          Bytes         @id @db.Binary(16)
-  name        String        @db.VarChar(32)
-  description String?       @db.Text
-  status      ProjectStatus @default(NOT_STARTED)
-  ownerId     Bytes         @map("owner_id") @db.Binary(16)
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  version     Int           @default(1)
+  id          Bytes    @id @db.Binary(16)
+  name        String   @db.VarChar(32)
+  description String?  @db.Text
+  ownerId     Bytes    @db.Binary(16)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  version     Int      @default(1)
 
-  workspaceId Bytes     @map("workspace_id") @db.Binary(16)
+  workspaceId Bytes     @db.Binary(16)
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   tasks   Task[]
@@ -84,13 +83,13 @@ model Section {
   id        Bytes    @id @db.Binary(16)
   name      String   @db.VarChar(32)
   position  Int      @default(0)
-  ownerId   Bytes    @map("owner_id") @db.Binary(16)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  ownerId   Bytes    @db.Binary(16)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   version   Int      @default(1)
 
   Project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId Bytes   @map("project_id") @db.Binary(16)
+  projectId Bytes   @db.Binary(16)
 
   tasks Task[]
 
@@ -102,26 +101,27 @@ model Task {
   title       String     @db.VarChar(255)
   description String?    @db.Text
   status      TaskStatus @default(NOT_STARTED)
-  dueDate     DateTime?  @map("due_date")
+  dueDate     DateTime?
   priority    Priority   @default(NONE)
-  allDay      Boolean    @default(true) @map("all_day")
-  startedAt   DateTime?  @map("started_at")
-  completedAt DateTime?  @map("completed_at")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  allDay      Boolean    @default(true)
+  startedAt   DateTime?
+  completed   Boolean    @default(false)
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   rrule       String?    @db.Text
   version     Int        @default(1)
 
   // relationships
-  ownerId     Bytes     @map("owner_id") @db.Binary(16)
+  ownerId     Bytes     @db.Binary(16)
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId Bytes     @map("workspace_id") @db.Binary(16)
+  workspaceId Bytes     @db.Binary(16)
 
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId Bytes   @map("project_id") @db.Binary(16)
+  projectId Bytes   @db.Binary(16)
 
   parent   Task?  @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
-  parentId Bytes? @map("parent_id") @db.Binary(16)
+  parentId Bytes? @db.Binary(16)
 
   section   Section? @relation(fields: [sectionId], references: [id])
   sectionId Bytes?   @db.Binary(16)
@@ -135,23 +135,14 @@ model Task {
 model Tag {
   id        Bytes    @id @db.Binary(16)
   name      String   @db.VarChar(16)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   version   Int      @default(1)
-  ownerId   Bytes    @map("owner_id") @db.Binary(16)
+  ownerId   Bytes    @db.Binary(16)
   tasks     Task[]
 
   @@index([name])
   @@index([ownerId])
-}
-
-// Enums
-
-enum ProjectStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  CANCELLED
-  COMPLETED
 }
 
 enum TaskStatus {

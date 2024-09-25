@@ -56,12 +56,13 @@ async function main() {
   });
 
   const now = new Date();
+  const taskIdBuffer = generatePrimaryKey();
   await prisma.task.createMany({
     data: [
       {
         title: "Task 1",
         priority: TaskPriority.LOW,
-        id: generatePrimaryKey(),
+        id: taskIdBuffer,
         ownerId: ownerIdBuffer,
         workspaceId: workspace.id,
         projectId: project.id,
@@ -91,6 +92,20 @@ async function main() {
         dueDate: new Date(new Date().setHours(0, 0, 0, 0)),
       },
     ],
+  });
+
+  await prisma.task.update({
+    where: {
+      id: taskIdBuffer,
+    },
+    data: {
+      tags: {
+        create: [
+          { id: generatePrimaryKey(), name: "debug", ownerId: ownerIdBuffer },
+          { id: generatePrimaryKey(), name: "feat", ownerId: ownerIdBuffer },
+        ],
+      },
+    },
   });
 }
 
