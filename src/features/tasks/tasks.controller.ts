@@ -14,6 +14,7 @@ import {
 import { isUUID } from "class-validator";
 import { UserProfile } from "../../auth/decorators/user-profile.decorator";
 import { FindOneParam } from "../../core/dto/find-one-param";
+import { TagDto } from "../tags/dto/tag.dto";
 import { AddTagsDto } from "./dto/add-tags.dto";
 import { CommitTagsDto } from "./dto/commit-tags.dto";
 import { ConnectTagsDto } from "./dto/connect-tags.dto";
@@ -35,7 +36,7 @@ export class TasksController {
     @UserProfile("id") userId: string,
     @Param() params: FindOneParam,
     @Body() dto: AddTagsDto,
-  ) {
+  ): Promise<TagDto[]> {
     return this.tasksService.addTags(params.id, userId, dto.tags);
   }
 
@@ -43,7 +44,7 @@ export class TasksController {
   async connectTags(
     @Param() params: FindOneParam,
     @Body() dto: ConnectTagsDto,
-  ) {
+  ): Promise<TagDto[]> {
     return this.tasksService.connectTags(params.id, dto.tagIds);
   }
 
@@ -52,7 +53,7 @@ export class TasksController {
     @UserProfile("id") userId: string,
     @Param() params: FindOneParam,
     @Body() dto: CommitTagsDto,
-  ) {
+  ): Promise<TagDto[]> {
     return this.tasksService.commitTags(
       params.id,
       userId,
@@ -63,15 +64,14 @@ export class TasksController {
 
   @Patch(":id/tags/:tagId/remove")
   async removeTag(
-    @UserProfile("id") userId: string,
     @Param() params: FindOneParam,
     @Param("tagId") tagId: string,
-  ) {
+  ): Promise<void> {
     if (!isUUID(tagId)) {
       throw new BadRequestException("Invalid tagId. Must be a valid UUID.");
     }
 
-    return this.tasksService.removeTag(params.id, tagId, userId);
+    await this.tasksService.removeTag(params.id, tagId);
   }
 
   // =========================================================================

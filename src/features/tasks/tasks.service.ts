@@ -10,7 +10,7 @@ import {
 } from "../../core/utils/uuid.util";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ProjectNotFoundException } from "../projects/exception/project-not-found.exception";
-import { toTagDto, toTagsArrayDto } from "../tags/dto/tag.dto";
+import { TagDto, toTagDto, toTagsArrayDto } from "../tags/dto/tag.dto";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
 import { TaskDto, toTaskDto } from "./dto/task.dto";
@@ -34,36 +34,44 @@ export class TasksService {
   async addTags(
     taskId: string,
     ownerId: string,
-    tags: string[],
-  ): Promise<TaskDto> {
+    tagNames: string[],
+  ): Promise<TagDto[]> {
     const tagId = generatePrimaryKey();
     const taskIdBuffer = uuidToBuffer(taskId);
     const ownerIdBuffer = uuidToBuffer(ownerId);
 
     try {
-      const task = await this.prisma.task.update({
-        where: {
-          id: taskIdBuffer,
-        },
+      await this.prisma.task.update({
         data: {
           tags: {
-            create: tags.map((tag) => ({
+            create: tagNames.map((name) => ({
               id: tagId,
-              name: tag,
+              name: name,
               ownerId: ownerIdBuffer,
             })),
           },
         },
-        include: {
-          tags: true,
-          subtasks: true,
+        where: {
+          id: taskIdBuffer,
+        },
+        select: {
+          allDay: true,
         },
       });
 
-      return {
-        ...toTaskDto(task),
-        tags: task.tags.map((tag) => toTagDto(tag)),
-      };
+      const tags = await this.prisma.tag.findMany({
+        where: {
+          tasks: {
+            every: {
+              id: taskIdBuffer,
+            },
+          },
+        },
+        skip: 0,
+        take: 100,
+      });
+
+      return tags.map((tag) => toTagDto(tag));
     } catch (e) {
       console.error(e);
       throw new UnprocessableEntityException("Could not add the tag");
@@ -77,14 +85,11 @@ export class TasksService {
    * @param ownerId
    * @returns
    */
-  async connectTags(taskId: string, tagIds: string[]): Promise<TaskDto> {
+  async connectTags(taskId: string, tagIds: string[]): Promise<TagDto[]> {
     const taskIdBuffer = uuidToBuffer(taskId);
 
     try {
-      const updatedTask = await this.prisma.task.update({
-        where: {
-          id: taskIdBuffer,
-        },
+      await this.prisma.task.update({
         data: {
           tags: {
             connect: tagIds.map((tagId) => ({
@@ -92,16 +97,27 @@ export class TasksService {
             })),
           },
         },
-        include: {
-          tags: true,
-          subtasks: true,
+        where: {
+          id: taskIdBuffer,
+        },
+        select: {
+          allDay: true,
         },
       });
 
-      return {
-        ...toTaskDto(updatedTask),
-        tags: updatedTask.tags.map((tag) => toTagDto(tag)),
-      };
+      const tags = await this.prisma.tag.findMany({
+        where: {
+          tasks: {
+            every: {
+              id: taskIdBuffer,
+            },
+          },
+        },
+        skip: 0,
+        take: 100,
+      });
+
+      return tags.map((tag) => toTagDto(tag));
     } catch (e) {
       console.error(e);
       if (e instanceof PrismaClientKnownRequestError) {
@@ -118,15 +134,12 @@ export class TasksService {
     ownerId: string,
     newTagNames: string[],
     tagIds: string[],
-  ): Promise<TaskDto> {
+  ): Promise<TagDto[]> {
     const taskIdBuffer = uuidToBuffer(taskId);
     const ownerIdBuffer = uuidToBuffer(ownerId);
 
     try {
-      const updatedTask = await this.prisma.task.update({
-        where: {
-          id: taskIdBuffer,
-        },
+      await this.prisma.task.update({
         data: {
           tags: {
             connect: tagIds.map((tagId) => ({
@@ -139,16 +152,27 @@ export class TasksService {
             })),
           },
         },
-        include: {
-          tags: true,
-          subtasks: true,
+        where: {
+          id: taskIdBuffer,
+        },
+        select: {
+          allDay: true,
         },
       });
 
-      return {
-        ...toTaskDto(updatedTask),
-        tags: updatedTask.tags.map((tag) => toTagDto(tag)),
-      };
+      const tags = await this.prisma.tag.findMany({
+        where: {
+          tasks: {
+            every: {
+              id: taskIdBuffer,
+            },
+          },
+        },
+        skip: 0,
+        take: 100,
+      });
+
+      return tags.map((tag) => toTagDto(tag));
     } catch (e) {
       console.error(e);
       if (e instanceof PrismaClientKnownRequestError) {
@@ -167,30 +191,12 @@ export class TasksService {
    * @param ownerId
    * @returns
    */
-  async removeTag(
-    taskId: string,
-    tagId: string,
-    ownerId: string,
-  ): Promise<TaskDto> {
+  async removeTag(taskId: string, tagId: string): Promise<void> {
     const taskIdBuffer = uuidToBuffer(taskId);
     const tagIdBuffer = uuidToBuffer(tagId);
 
-    const task = await this.prisma.task.findFirst({
-      where: {
-        id: taskIdBuffer,
-        ownerId: uuidToBuffer(ownerId),
-      },
-    });
-
-    if (!task) {
-      throw new TaskNotFoundException();
-    }
-
     try {
-      const updatedTask = await this.prisma.task.update({
-        where: {
-          id: taskIdBuffer,
-        },
+      await this.prisma.task.update({
         data: {
           tags: {
             disconnect: {
@@ -198,17 +204,23 @@ export class TasksService {
             },
           },
         },
-        include: {
-          tags: true,
+        where: {
+          id: taskIdBuffer,
+        },
+        select: {
+          allDay: true,
         },
       });
-
-      return {
-        ...toTaskDto(updatedTask),
-        tags: updatedTask.tags.map((tag) => toTagDto(tag)),
-      };
     } catch (e) {
       console.error(e);
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (
+          e.code === PrismaErrorCodes.RECORD_NOT_FOUND ||
+          e.code === PrismaErrorCodes.RECORD_REQUIRED_BUT_NOT_FOUND
+        ) {
+          throw new TaskNotFoundException();
+        }
+      }
       throw new UnprocessableEntityException("Could not remove the tag");
     }
   }
