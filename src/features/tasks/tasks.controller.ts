@@ -15,6 +15,7 @@ import { isUUID } from "class-validator";
 import { UserProfile } from "../../auth/decorators/user-profile.decorator";
 import { FindOneParam } from "../../core/dto/find-one-param";
 import { AddTagsDto } from "./dto/add-tags.dto";
+import { CommitTagsDto } from "./dto/commit-tags.dto";
 import { ConnectTagsDto } from "./dto/connect-tags.dto";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { TaskQueryParams } from "./dto/task-query-params.dto";
@@ -44,6 +45,20 @@ export class TasksController {
     @Body() dto: ConnectTagsDto,
   ) {
     return this.tasksService.connectTags(params.id, dto.tagIds);
+  }
+
+  @Patch(":id/tags/commit")
+  async commitTags(
+    @UserProfile("id") userId: string,
+    @Param() params: FindOneParam,
+    @Body() dto: CommitTagsDto,
+  ) {
+    return this.tasksService.commitTags(
+      params.id,
+      userId,
+      dto.newTagNames,
+      dto.tagIds,
+    );
   }
 
   @Patch(":id/tags/:tagId/remove")

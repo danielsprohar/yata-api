@@ -56,6 +56,7 @@ export class TasksService {
         },
         include: {
           tags: true,
+          subtasks: true,
         },
       });
 
@@ -93,6 +94,54 @@ export class TasksService {
         },
         include: {
           tags: true,
+          subtasks: true,
+        },
+      });
+
+      return {
+        ...toTaskDto(updatedTask),
+        tags: updatedTask.tags.map((tag) => toTagDto(tag)),
+      };
+    } catch (e) {
+      console.error(e);
+      if (e instanceof PrismaClientKnownRequestError) {
+        if (e.code === PrismaErrorCodes.RECORD_NOT_FOUND) {
+          throw new TaskNotFoundException();
+        }
+      }
+      throw new UnprocessableEntityException("Could not connect the tag");
+    }
+  }
+
+  async commitTags(
+    taskId: string,
+    ownerId: string,
+    newTagNames: string[],
+    tagIds: string[],
+  ): Promise<TaskDto> {
+    const taskIdBuffer = uuidToBuffer(taskId);
+    const ownerIdBuffer = uuidToBuffer(ownerId);
+
+    try {
+      const updatedTask = await this.prisma.task.update({
+        where: {
+          id: taskIdBuffer,
+        },
+        data: {
+          tags: {
+            connect: tagIds.map((tagId) => ({
+              id: uuidToBuffer(tagId),
+            })),
+            create: newTagNames.map((name) => ({
+              id: generatePrimaryKey(),
+              name: name,
+              ownerId: ownerIdBuffer,
+            })),
+          },
+        },
+        include: {
+          tags: true,
+          subtasks: true,
         },
       });
 
