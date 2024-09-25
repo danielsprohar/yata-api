@@ -1,11 +1,4 @@
-import { ProjectStatus } from "@prisma/client";
-import {
-  IsEnum,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-} from "class-validator";
+import { IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
 
 export class CreateProjectDto {
   @IsUUID()
@@ -18,8 +11,4 @@ export class CreateProjectDto {
   @IsOptional()
   @MaxLength(255)
   description?: string;
-
-  @IsOptional()
-  @IsEnum(ProjectStatus)
-  status?: ProjectStatus;
 }

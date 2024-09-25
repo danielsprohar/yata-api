@@ -109,14 +109,17 @@ export class SectionsService {
     ownerId: string,
     dto: UpdateSectionDto,
   ): Promise<SectionDto> {
-    const sectionsCount = await this.prisma.section.count({
+    const sectionEntity = await this.prisma.section.findFirst({
       where: {
         id: uuidToBuffer(id),
         ownerId: uuidToBuffer(ownerId),
       },
+      select: {
+        version: true,
+      },
     });
 
-    if (sectionsCount === 0) {
+    if (sectionEntity === null) {
       throw new SectionNotFoundException();
     }
     try {

@@ -104,7 +104,9 @@ export class WorkspacesService {
             name: dto.name,
             description: dto.description,
             public: dto.public,
-            version: workspace.version + 1,
+            version: {
+              increment: 1,
+            },
           },
         })
         .then((workspace) => toWorkspaceDto(workspace));

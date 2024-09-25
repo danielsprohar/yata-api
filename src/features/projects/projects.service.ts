@@ -111,8 +111,9 @@ export class ProjectsService {
               dto.description !== project.description
                 ? dto.description
                 : undefined,
-            status: dto.status !== project.status ? dto.status : undefined,
-            version: project.version + 1,
+            version: {
+              increment: 1,
+            },
           },
         })
         .then((updatedProject) => toProjectDto(updatedProject));
