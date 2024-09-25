@@ -43,6 +43,9 @@ export class TasksService {
     try {
       await this.prisma.task.update({
         data: {
+          version: {
+            increment: 1,
+          },
           tags: {
             create: tagNames.map((name) => ({
               id: tagId,
@@ -91,6 +94,9 @@ export class TasksService {
     try {
       await this.prisma.task.update({
         data: {
+          version: {
+            increment: 1,
+          },
           tags: {
             connect: tagIds.map((tagId) => ({
               id: uuidToBuffer(tagId),
@@ -141,6 +147,9 @@ export class TasksService {
     try {
       await this.prisma.task.update({
         data: {
+          version: {
+            increment: 1,
+          },
           tags: {
             connect: tagIds.map((tagId) => ({
               id: uuidToBuffer(tagId),
@@ -198,6 +207,9 @@ export class TasksService {
     try {
       await this.prisma.task.update({
         data: {
+          version: {
+            increment: 1,
+          },
           tags: {
             disconnect: {
               id: tagIdBuffer,
@@ -509,6 +521,7 @@ export class TasksService {
         status: dto.status,
         dueDate: dto.dueDate,
         priority: dto.priority,
+        completed: dto.completed,
         workspaceId: dto.workspaceId
           ? uuidToBuffer(dto.workspaceId)
           : undefined,

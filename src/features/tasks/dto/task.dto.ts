@@ -33,6 +33,7 @@ export function toTaskDto(task: Task): TaskDto {
     sectionId: task.sectionId ? bufferToUuid(task.sectionId) : undefined,
     parentId: task.parentId ? bufferToUuid(task.parentId) : undefined,
     allDay: task.allDay,
+    completed: task.completed,
     completedAt: task.completedAt,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
