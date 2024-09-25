@@ -67,7 +67,7 @@ services:
 
   keycloak-db:
     image: postgres:16-alpine
-    container_name: yata-keycloak-postgres
+    container_name: yata-keycloak-db
     ports:
       - 5432:5432
     environment:
