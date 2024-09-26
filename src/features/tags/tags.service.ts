@@ -39,8 +39,8 @@ export class TagsService {
     }
   }
 
-  async findAll(params: TagsQueryParams): Promise<PageResponse<TagDto>> {
-    const { ownerId, taskId, q: query } = params;
+  async findAll(ownerId: string, params: TagsQueryParams): Promise<PageResponse<TagDto>> {
+    const { taskId, q: query } = params;
     const ownerIdBuffer = uuidToBuffer(ownerId);
     const taskIdBuffer = taskId ? uuidToBuffer(taskId) : undefined;
     const page = Math.max(+params.page || 0, 0);

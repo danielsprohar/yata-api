@@ -10,6 +10,4 @@ export class TagsQueryParams extends PageQueryParams {
   @MaxLength(16)
   @IsString()
   q?: string;
-
-  ownerId: string;
 }

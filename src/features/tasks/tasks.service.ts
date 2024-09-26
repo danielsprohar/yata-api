@@ -145,7 +145,7 @@ export class TasksService {
     const ownerIdBuffer = uuidToBuffer(ownerId);
 
     try {
-      await this.prisma.task.update({
+      const task = await this.prisma.task.update({
         data: {
           version: {
             increment: 1,
@@ -164,24 +164,12 @@ export class TasksService {
         where: {
           id: taskIdBuffer,
         },
-        select: {
-          allDay: true,
+        include: {
+          tags: true,
         },
       });
 
-      const tags = await this.prisma.tag.findMany({
-        where: {
-          tasks: {
-            every: {
-              id: taskIdBuffer,
-            },
-          },
-        },
-        skip: 0,
-        take: 100,
-      });
-
-      return tags.map((tag) => toTagDto(tag));
+      return task.tags.map((tag) => toTagDto(tag));
     } catch (e) {
       console.error(e);
       if (e instanceof PrismaClientKnownRequestError) {

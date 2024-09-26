@@ -33,10 +33,7 @@ export class TagsController {
 
   @Get()
   findAll(@UserProfile("id") userId: string, @Query() params: TagsQueryParams) {
-    return this.tagsService.findAll({
-      ...params,
-      ownerId: userId,
-    });
+    return this.tagsService.findAll(userId, params);
   }
 
   @Get(":id")
